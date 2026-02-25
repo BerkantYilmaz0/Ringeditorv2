@@ -21,10 +21,13 @@ export const logger = winston.createLogger({
     ],
 });
 
-if (process.env.NODE_ENV !== 'production') {
-    logger.add(
-        new winston.transports.Console({
-            format: combine(colorize(), myFormat),
-        })
-    );
-}
+// Her zaman konsola yaz (Railway logları için kritik)
+logger.add(
+    new winston.transports.Console({
+        format: combine(
+            colorize(),
+            timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+            myFormat
+        ),
+    })
+);

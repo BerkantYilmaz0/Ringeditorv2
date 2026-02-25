@@ -3,15 +3,16 @@
 const getApiBaseUrl = () => {
     let url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
-    // Railway tırnak hatalarını temizle
+    // Railway tırnaklarını temizle ve boşlukları at
     url = url.replace(/['"]+/g, '').trim();
 
-    // Protokol eksikse ekle (Railway'de unutanlar için)
+    // Protokol kontrolü (Mutlaka bir protokol olmalı, yoksa relative sayılır ve domaine eklenir)
     if (url && !url.startsWith('http')) {
         url = `https://${url}`;
     }
 
-    return url;
+    // Sondaki slash işaretini temizle (endpoint'ler zaten / ile başlıyor)
+    return url.replace(/\/+$/, '');
 };
 
 const API_BASE_URL = getApiBaseUrl();
