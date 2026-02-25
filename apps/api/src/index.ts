@@ -5,14 +5,17 @@ import { prisma } from './config/database';
 
 async function bootstrap() {
     try {
-        // 1. Veritabanı ve Kritik servis bağlantılarını Check et
-        await prisma.$connect();
-        logger.info('📦 PostgreSQL veritabanına bağlanıldı.');
+        logger.info('🚀 Uygulama başlatılıyor...');
+
+        // 1. Veritabanı bağlantısını arka planda başlat (bloklama yapmasın)
+        prisma.$connect()
+            .then(() => logger.info('📦 PostgreSQL bağlantısı başarılı.'))
+            .catch((err) => logger.error('❌ PostgreSQL bağlantı hatası:', err));
 
         // 2. Server'ı kaldır
         const server = app.listen(env.PORT, () => {
-            logger.info(`🚀 API servisi http://localhost:${env.PORT} üzerinde çalışıyor.`);
-            logger.info(`👉 Ortam: ${env.NODE_ENV}`);
+            logger.info(`✅ API servisi http://0.0.0.0:${env.PORT} üzerinde aktif.`);
+            logger.info(`⚙️ Ortam: ${env.NODE_ENV}`);
         });
 
         // 3. Graceful Shutdown Yönetimi (Docker vb. temiz kapanış)
