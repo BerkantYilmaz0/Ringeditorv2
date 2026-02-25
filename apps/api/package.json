@@ -5,7 +5,7 @@
     "type": "module",
     "scripts": {
         "dev": "tsx watch src/index.ts",
-        "build": "tsc && esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/index.js --packages=external --external:@prisma/client --banner:js=\"import { createRequire } from 'module'; const require = createRequire(import.meta.url);\"",
+        "build": "pnpm prisma:generate && tsc && esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/index.js --packages=external --external:@prisma/client --banner:js=\"import { createRequire } from 'module'; const require = createRequire(import.meta.url);\"",
         "start": "node dist/index.js",
         "type-check": "tsc --noEmit",
         "lint": "tsc --noEmit",
