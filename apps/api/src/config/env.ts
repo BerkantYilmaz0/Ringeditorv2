@@ -3,9 +3,20 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Tırnakları temizleyen yardımcı fonksiyon
+const sanitizeEnv = (val: string | undefined) => {
+    if (!val) return val;
+    return val.replace(/['"]+/g, '').trim();
+};
+
+// Kritik değişkenleri temizle
+if (process.env.DATABASE_URL) process.env.DATABASE_URL = sanitizeEnv(process.env.DATABASE_URL);
+if (process.env.REDIS_URL) process.env.REDIS_URL = sanitizeEnv(process.env.REDIS_URL);
+if (process.env.PORT) process.env.PORT = sanitizeEnv(process.env.PORT);
+
 const envSchema = z.object({
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-    PORT: z.string().default('3000'),
+    PORT: z.string().default('3001'),
     DATABASE_URL: z.string().url('Geçerli bir DB URL si girmelisiniz'),
     REDIS_URL: z.string().url('Geçerli bir Redis bağlantı noktası girmelisiniz'),
     JWT_SECRET: z.string().min(16, 'JWT Secret en az 16 karakter olmalıdır'),
