@@ -15,8 +15,8 @@ COPY packages/shared/src ./packages/shared/src
 # api paketi
 COPY apps/api/package.json apps/api/tsconfig.json ./apps/api/
 COPY apps/api/prisma ./apps/api/prisma
-COPY apps/api/src ./apps/api/src
-
+# apps/api/Dockerfile:18 -> Şu şekilde değiştir:
+COPY apps/api/src/ ./apps/api/src/
 # bağımlılıkları kur
 RUN pnpm install --frozen-lockfile
 
