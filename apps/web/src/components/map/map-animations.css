@@ -1,0 +1,23 @@
+/* 
+ * Ring Modern - Leaflet OSRM Route Animation 
+ * dashArray değerleri React tarafından (örn: 10, 20) verilmektedir. 
+ * Bu animasyon dashOffset değerini hareket ettirerek yolda akan araç hissi verir.
+ */
+
+.animated-route-line {
+    animation: dash 30s linear infinite;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    pointer-events: none;
+    /* Harita etkileşimlerini (tıklama vs) engellememesi için */
+}
+
+@keyframes dash {
+    from {
+        stroke-dashoffset: 1000;
+    }
+
+    to {
+        stroke-dashoffset: 0;
+    }
+}

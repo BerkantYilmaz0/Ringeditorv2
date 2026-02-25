@@ -1,0 +1,15 @@
+node_modules
+.next
+dist
+.git
+.gitignore
+*.md
+logs
+.agent
+Görseller
+Sayfa Akışları
+docs
+osrm-data
+test-*.sh
+.env
+.env.local

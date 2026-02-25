@@ -1,0 +1,77 @@
+# Dependencies
+node_modules/
+
+# Build Outputs
+dist/
+.next/
+out/
+build/
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# OS Files
+.DS_Store
+Thumbs.db
+*.swp
+
+# IDE
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Testing
+coverage/
+.nyc_output
+
+# Prisma
+/apps/api/prisma/migrations/**/migration_lock.toml
+
+# OSRM Data
+osrm-data/
+*.osrm*
+*.pbf
+
+# Docker Data
+pgdata/
+redis-data/
+
+# Local/Temp
+tmp/
+.temp/
+.cache/
+.agent/
+brain/
+*.webp
+*.png
+*.jpg
+*.jpeg
+*.mp4
+
+# Documentation & Media
+Görseller/
+docs/
+"Sayfa Akışları/"
+tech-stack.md
+openapiv2.yaml
+
+# Scripts & Testing
+test-*.sh
+
+# Shared Package Dist
+packages/shared/dist/
+
+# Prisma Generated Client
+apps/api/src/generated/

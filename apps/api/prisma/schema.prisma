@@ -1,0 +1,206 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Kimlik & Yetkilendirme ───
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  OPERATOR
+  VIEWER
+}
+
+model User {
+  id           String    @id @default(cuid())
+  username     String    @unique
+  passwordHash String    @map("password_hash")
+  fullName     String    @map("full_name")
+  email        String?
+  phone        String?
+  role         UserRole  @default(VIEWER)
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLoginAt  DateTime? @map("last_login_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+// ─── Şoför Yönetimi ───
+
+model Driver {
+  id            String    @id @default(cuid())
+  name          String
+  phone         String?
+  licenseType   String?   @map("license_type")
+  licenseExpiry DateTime? @map("license_expiry")
+  address       String?
+  notes         String?
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  vehicles Vehicle[]
+
+  @@map("drivers")
+}
+
+// ─── Araç Yönetimi ───
+
+model Vehicle {
+  id          String  @id @default(cuid())
+  plate       String  @unique
+  brand       String?
+  model       String?
+  year        Int?
+  color       String?
+  trackerId   String? @unique @map("tracker_id")
+  simNumber   String? @map("sim_number")
+  odometerKm  Float?  @map("odometer_km")
+  engineHours Float?  @map("engine_hours")
+  isActive    Boolean @default(true) @map("is_active")
+  lastLat     Float?  @map("last_lat")
+  lastLng     Float?  @map("last_lng")
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  driver   Driver? @relation(fields: [driverId], references: [id])
+  driverId String? @map("driver_id")
+
+  jobs         Job[]
+  templateJobs TemplateJob[]
+
+  @@map("vehicles")
+}
+
+// ─── Ring/Servis Tipi ───
+
+model RingType {
+  id        Int     @id @default(autoincrement())
+  name      String
+  description String?
+  typeId    Int     @map("type_id")
+  color     String  @default("#000000")
+  isDeleted Boolean @default(false) @map("is_deleted")
+
+  routes       Route[]
+  templateJobs TemplateJob[]
+
+  @@map("ring_types")
+}
+
+// ─── Güzergah ───
+
+model Route {
+  id          Int      @id @default(autoincrement())
+  name        String
+  geometry    Json?
+  color       String?
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  ringType   RingType @relation(fields: [ringTypeId], references: [id], onDelete: Cascade)
+  ringTypeId Int      @map("ring_type_id")
+
+  stops        RouteStop[]
+  jobs         Job[]
+  templateJobs TemplateJob[]
+
+  @@map("routes")
+}
+
+// ─── Durak ───
+
+model Stop {
+  id          Int      @id @default(autoincrement())
+  name        String
+  lat         Float
+  lng         Float
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  routes RouteStop[]
+
+  @@map("stops")
+}
+
+// ─── Güzergah-Durak Pivot ───
+
+model RouteStop {
+  route    Route @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  routeId  Int   @map("route_id")
+  stop     Stop  @relation(fields: [stopId], references: [id], onDelete: Cascade)
+  stopId   Int   @map("stop_id")
+  sequence Int
+
+  @@id([routeId, stopId])
+  @@map("route_stops")
+}
+
+// ─── Sefer (Job) ───
+
+model Job {
+  id        Int      @id @default(autoincrement())
+  dueTime   BigInt   @map("due_time")
+  status    Int      @default(1)
+  type      Int      @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id])
+  vehicleId String  @map("vehicle_id")
+
+  route   Route? @relation(fields: [routeId], references: [id])
+  routeId Int?   @map("route_id")
+
+  @@unique([vehicleId, dueTime])
+  @@map("jobs")
+}
+
+// ─── Şablon ───
+
+model Template {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  isDeleted   Boolean  @default(false) @map("is_deleted")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  jobs TemplateJob[]
+
+  @@map("templates")
+}
+
+// ─── Şablon Seferi ───
+
+model TemplateJob {
+  id        Int      @id @default(autoincrement())
+  dueTime   BigInt   @map("due_time")
+  status    Int      @default(1)
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  template   Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  templateId Int      @map("template_id")
+
+  ringType   RingType @relation(fields: [ringTypeId], references: [id])
+  ringTypeId Int      @map("ring_type_id")
+
+  route   Route? @relation(fields: [routeId], references: [id])
+  routeId Int?   @map("route_id")
+
+  vehicle   Vehicle? @relation(fields: [vehicleId], references: [id])
+  vehicleId String?  @map("vehicle_id")
+
+  @@map("template_jobs")
+}

@@ -1,0 +1,28 @@
+{
+  "name": "ring-planner",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Toplu taşıma sefer yönetim sistemi",
+  "scripts": {
+    "dev:api": "pnpm --filter @ring-planner/api dev",
+    "dev:web": "pnpm --filter @ring-planner/web dev",
+    "dev": "pnpm run --parallel dev:api dev:web",
+    "build": "pnpm run --filter @ring-planner/shared build && pnpm run --parallel build:api build:web",
+    "build:api": "pnpm --filter @ring-planner/api build",
+    "build:web": "pnpm --filter @ring-planner/web build",
+    "lint": "pnpm run -r lint",
+    "type-check": "pnpm run -r type-check",
+    "test": "pnpm run -r test",
+    "db:migrate": "pnpm --filter @ring-planner/api prisma:migrate",
+    "db:seed": "pnpm --filter @ring-planner/api prisma:seed",
+    "db:studio": "pnpm --filter @ring-planner/api prisma:studio",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.15.0"
+}
