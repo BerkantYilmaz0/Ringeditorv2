@@ -1,6 +1,20 @@
 // Backend API ile iletişimi yöneten fetch wrapper
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+const getApiBaseUrl = () => {
+    let url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+
+    // Railway tırnak hatalarını temizle
+    url = url.replace(/['"]+/g, '').trim();
+
+    // Protokol eksikse ekle (Railway'de unutanlar için)
+    if (url && !url.startsWith('http')) {
+        url = `https://${url}`;
+    }
+
+    return url;
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 // API hata sınıfı
 export class ApiError extends Error {
