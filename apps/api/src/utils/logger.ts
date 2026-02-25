@@ -16,18 +16,19 @@ export const logger = winston.createLogger({
     ),
     defaultMeta: { service: 'ring-planner-api' },
     transports: [
-        new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-        new winston.transports.File({ filename: 'logs/combined.log' }),
+        // Her zaman konsola yaz (Railway ve Local Terminal için)
+        new winston.transports.Console({
+            format: combine(
+                colorize(),
+                timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+                myFormat
+            ),
+        }),
     ],
 });
 
-// Her zaman konsola yaz (Railway logları için kritik)
-logger.add(
-    new winston.transports.Console({
-        format: combine(
-            colorize(),
-            timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-            myFormat
-        ),
-    })
-);
+// Sadece local'de (production değilse) dosyaya yaz
+if (process.env.NODE_ENV !== 'production') {
+    logger.add(new winston.transports.File({ filename: 'logs/error.log', level: 'error' }));
+    logger.add(new winston.transports.File({ filename: 'logs/combined.log' }));
+}
