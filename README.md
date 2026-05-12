@@ -2,7 +2,7 @@
 
 > **Bu proje, [RingEditor v1](https://github.com/BerkantYilmaz0/RingEditor) projesinin devamı niteliğindeki v2 versiyonudur.**
 
- **[Canlı Demo](http://byilmaz.dev/)** · Demo giriş: `admin` / `admin123`
+ **[Canlı Demo](http://byilmaz.tech/)** · Demo giriş: `admin` / `admin123`
 
 Bu sistem ticari amaçla kullanılmak üzere geliştirilmemiştir. Kişisel gelişim ve öğrenme amacıyla oluşturulmuş bir portföy projesidir. Ticari amaçla kullanılamaz.
 
