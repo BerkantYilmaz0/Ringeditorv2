@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -88,8 +89,7 @@ export default function RingTypeDialog({
             onSuccess();
             onOpenChange(false);
         } catch (error: unknown) {
-            console.error('Ring tipi kaydedilemedi:', error);
-            alert((error as Error).message || 'Kayıt işlemi başarısız!');
+            toast.error((error as Error).message || 'Kayıt işlemi başarısız!');
         }
     };
 

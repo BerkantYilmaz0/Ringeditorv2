@@ -244,8 +244,7 @@ export default function TemplateSeferEditor({ open, onOpenChange, template, onUp
     const handleDelete = async (id: number) => {
         setIsSaving(true);
         try {
-            console.log("Silme baslatildi", id);
-            setNewVehicleId(''); // Opsiyonel 
+            setNewVehicleId(''); // Opsiyonel
             await deleteTemplateJob(id);
             await fetchData();
             onUpdate();

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { toast } from 'sonner';
 import { getRingTypes, deleteRingType, RingType } from '@/lib/ring-types';
 import {
     Plus,
@@ -56,13 +57,12 @@ export default function RingTypesPage() {
     };
 
     const handleDelete = async (id: number) => {
-        if (!window.confirm('Bu ring tipini silmek istediğinize emin misiniz? (İlgili güzergahlar varsa silinemeyebilir)')) return;
         try {
             await deleteRingType(id);
             fetchData();
+            toast.success('Ring tipi silindi.');
         } catch (error: unknown) {
-            console.error('Ring tipi silinemedi:', error);
-            alert((error as Error).message || 'Silme işlemi başarısız');
+            toast.error((error as Error).message || 'Silme işlemi başarısız');
         }
     };
 

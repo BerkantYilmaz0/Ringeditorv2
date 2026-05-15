@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import { RouteCreateSchema } from '@ring-planner/shared';
 import { toast } from 'sonner';
 import { getRoutes, createRoute, deleteRoute, Route, getOsrmRoute, GeoJSONLineString } from '@/lib/routes';
 import { getStops, Stop } from '@/lib/stops';
@@ -50,14 +50,8 @@ const MapComponent = dynamic(() => import('@/components/map/MapComponent'), {
     )
 });
 
-const routeSchema = z.object({
-    name: z.string().min(1, 'Güzergah adı zorunludur'),
-    description: z.string().optional(),
-    color: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i, 'Geçerli bir Hex renk kodu giriniz').optional(),
-    ringTypeId: z.coerce.number().min(1, 'Ring Tipi seçimi zorunludur'),
-});
-
-type RouteFormValues = z.infer<typeof routeSchema>;
+const routeSchema = RouteCreateSchema.shape.body;
+type RouteFormValues = typeof routeSchema._type;
 
 export default function RoutesPage() {
     const [routes, setRoutes] = useState<Route[]>([]);

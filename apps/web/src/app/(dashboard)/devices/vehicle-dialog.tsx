@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -138,8 +139,7 @@ export default function VehicleDialog({
             onSuccess();
             onOpenChange(false);
         } catch (error: unknown) {
-            console.error('Araç kaydedilemedi:', error);
-            alert((error as Error).message || 'Kayıt işlemi başarısız!');
+            toast.error((error as Error).message || 'Kayıt işlemi başarısız!');
         }
     };
 

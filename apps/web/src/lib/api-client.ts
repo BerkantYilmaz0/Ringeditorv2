@@ -45,7 +45,7 @@ interface ApiErrorResponse {
 
 type ApiResponse<T> = ApiSuccessResponse<T> | ApiErrorResponse;
 
-let isRefreshing = false;
+let refreshPromise: Promise<boolean> | null = null;
 
 // Ana fetch fonksiyonu
 async function apiFetch<T>(
@@ -61,32 +61,23 @@ async function apiFetch<T>(
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...options,
         headers,
-        credentials: 'include', // Cookie'leri gönder
+        credentials: 'include',
     });
 
     // 401 Aldığımızda (Access Token dolmuşsa)
     if (response.status === 401 && !isRetry && endpoint !== '/auth/login' && endpoint !== '/auth/refresh') {
-        if (!isRefreshing) {
-            isRefreshing = true;
-            try {
-                // Refresh isteği at
-                const refreshRes = await fetch(`${API_BASE_URL}/auth/refresh`, {
-                    method: 'POST',
-                    credentials: 'include',
-                });
+        if (!refreshPromise) {
+            refreshPromise = fetch(`${API_BASE_URL}/auth/refresh`, {
+                method: 'POST',
+                credentials: 'include',
+            })
+                .then(res => res.ok)
+                .catch(() => false)
+                .finally(() => { refreshPromise = null; });
+        }
 
-                if (refreshRes.ok) {
-                    isRefreshing = false;
-                    // Orijinal isteği tekrar dene
-                    return apiFetch<T>(endpoint, options, true);
-                }
-            } catch (err) {
-                console.error('Refresh token error:', err);
-            }
-            isRefreshing = false;
-        } else {
-            // Eğer zaten refresh işlemi yapılıyorsa biraz bekle ve tekrar dene
-            await new Promise(resolve => setTimeout(resolve, 1000));
+        const refreshed = await refreshPromise;
+        if (refreshed) {
             return apiFetch<T>(endpoint, options, true);
         }
     }
