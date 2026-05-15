@@ -17,7 +17,7 @@ export class RouteStopsController {
             const routeId = parseId(req.params.routeId);
             const { stopId, sequence } = req.body;
             const result = await RouteStopsService.addStop(routeId, stopId, sequence);
-            res.status(201).json(ResponseFormatter.success(result));
+            res.status(201).json(ResponseFormatter.success(result, 201));
         } catch (error) { next(error); }
     }
 

@@ -2,11 +2,11 @@ import { prisma } from '../../config/database';
 import { ApiError } from '../../utils/api-error';
 import { UserCreateInput, UserUpdateInput } from '@ring-planner/shared';
 import bcrypt from 'bcryptjs';
+import { pageSkip } from '../../utils/paginate';
 
 export class UsersService {
-    // tüm kullanıcıları sayfalı getir
     static async findAll(page: number = 1, limit: number = 10) {
-        const skip = (page - 1) * limit;
+        const skip = pageSkip(page, limit);
 
         const [users, total] = await Promise.all([
             prisma.user.findMany({
@@ -25,10 +25,9 @@ export class UsersService {
             prisma.user.count(),
         ]);
 
-        return { users, total, page, limit, totalPages: Math.ceil(total / limit) };
+        return { users, total };
     }
 
-    // id'ye göre tek kullanıcı getir
     static async findById(id: string) {
         const user = await prisma.user.findUnique({
             where: { id },
@@ -45,14 +44,10 @@ export class UsersService {
             },
         });
 
-        if (!user) {
-            throw ApiError.notFound('Kullanıcı bulunamadı');
-        }
-
+        if (!user) throw ApiError.notFound('Kullanıcı bulunamadı');
         return user;
     }
 
-    // yeni kullanıcı oluştur
     static async create(data: UserCreateInput) {
         const existingUser = await prisma.user.findFirst({
             where: {
@@ -60,14 +55,12 @@ export class UsersService {
             },
         });
 
-        if (existingUser) {
-            throw ApiError.conflict('Bu kullanıcı adı veya e-posta zaten kullanımda');
-        }
+        if (existingUser) throw ApiError.conflict('Bu kullanıcı adı veya e-posta zaten kullanımda');
 
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(data.password, salt);
 
-        const newUser = await prisma.user.create({
+        return prisma.user.create({
             data: {
                 username: data.username,
                 passwordHash,
@@ -85,15 +78,11 @@ export class UsersService {
                 isActive: true,
             },
         });
-
-        return newUser;
     }
 
-    // kullanıcı güncelle
     static async update(id: string, data: UserUpdateInput) {
         await this.findById(id);
 
-        // prisma update için hazırla
         const updatePayload: Record<string, unknown> = {};
         if (data.username !== undefined) updatePayload.username = data.username;
         if (data.fullName !== undefined) updatePayload.fullName = data.fullName;
@@ -107,7 +96,7 @@ export class UsersService {
             updatePayload.passwordHash = await bcrypt.hash(data.password, salt);
         }
 
-        const updatedUser = await prisma.user.update({
+        return prisma.user.update({
             where: { id },
             data: updatePayload,
             select: {
@@ -118,11 +107,8 @@ export class UsersService {
                 isActive: true,
             },
         });
-
-        return updatedUser;
     }
 
-    // kullanıcı sil
     static async delete(id: string) {
         await this.findById(id);
         await prisma.user.delete({ where: { id } });

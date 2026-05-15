@@ -21,7 +21,7 @@ export class RingTypesController {
     static async create(req: Request, res: Response, next: NextFunction) {
         try {
             const ringType = await RingTypesService.create(req.body);
-            res.status(201).json(ResponseFormatter.success(ringType));
+            res.status(201).json(ResponseFormatter.success(ringType, 201));
         } catch (error) { next(error); }
     }
 

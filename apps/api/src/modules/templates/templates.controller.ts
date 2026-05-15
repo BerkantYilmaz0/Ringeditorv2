@@ -21,7 +21,7 @@ export class TemplatesController {
     static async create(req: Request, res: Response, next: NextFunction) {
         try {
             const template = await TemplatesService.create(req.body);
-            res.status(201).json(ResponseFormatter.success(template));
+            res.status(201).json(ResponseFormatter.success(template, 201));
         } catch (error) { next(error); }
     }
 

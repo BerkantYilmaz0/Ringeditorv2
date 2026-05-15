@@ -24,7 +24,7 @@ export class StopsController {
     static async create(req: Request, res: Response, next: NextFunction) {
         try {
             const stop = await StopsService.create(req.body);
-            res.status(201).json(ResponseFormatter.success(stop));
+            res.status(201).json(ResponseFormatter.success(stop, 201));
         } catch (error) { next(error); }
     }
 

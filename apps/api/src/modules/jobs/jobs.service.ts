@@ -2,17 +2,16 @@ import { prisma } from '../../config/database';
 import { ApiError } from '../../utils/api-error';
 import { Prisma } from '@prisma/client';
 import { format } from 'date-fns';
+import { pageSkip } from '../../utils/paginate';
 
 export class JobsService {
-    // seferleri tarih filtresine göre getir
     static async findAll(page: number = 1, limit: number = 10, filters?: { vehicleId?: string; routeId?: number; date?: string }) {
-        const skip = (page - 1) * limit;
+        const skip = pageSkip(page, limit);
         const where: Prisma.JobWhereInput = {};
 
         if (filters?.vehicleId) where.vehicleId = filters.vehicleId;
         if (filters?.routeId) where.routeId = filters.routeId;
 
-        // tarih bazlı filtre — dueTime BigInt unix timestamp
         if (filters?.date) {
             const dayStart = new Date(filters.date).setHours(0, 0, 0, 0);
             const dayEnd = new Date(filters.date).setHours(23, 59, 59, 999);
@@ -30,7 +29,7 @@ export class JobsService {
             prisma.job.count({ where }),
         ]);
 
-        return { jobs, total, page, limit, totalPages: Math.ceil(total / limit) };
+        return { jobs, total };
     }
 
     static async findById(id: number) {
@@ -43,7 +42,6 @@ export class JobsService {
     }
 
     static async create(data: { vehicleId: string; routeId?: number; dueTime: number; status?: number; type?: number }) {
-        // çakışma kontrolü
         const conflict = await prisma.job.findUnique({
             where: { vehicleId_dueTime: { vehicleId: data.vehicleId, dueTime: BigInt(data.dueTime) } },
         });
@@ -86,23 +84,30 @@ export class JobsService {
         return { success: true, count: result.count };
     }
 
-    // çakışma kontrolü (toplu)
+    // Tek sorguda çakışma kontrolü (N+1 ortadan kalktı)
     static async checkConflicts(items: { vehicleId: string; dueTime: number }[]) {
-        const conflicts: { vehicleId: string; dueTime: number; existingJobId: number }[] = [];
+        if (!items || items.length === 0) return { hasConflicts: false, conflicts: [] };
 
-        for (const item of items) {
-            const existing = await prisma.job.findUnique({
-                where: { vehicleId_dueTime: { vehicleId: item.vehicleId, dueTime: BigInt(item.dueTime) } },
-            });
-            if (existing) {
-                conflicts.push({ vehicleId: item.vehicleId, dueTime: item.dueTime, existingJobId: existing.id });
-            }
-        }
+        const existing = await prisma.job.findMany({
+            where: {
+                OR: items.map(i => ({
+                    vehicleId: i.vehicleId,
+                    dueTime: BigInt(i.dueTime),
+                })),
+            },
+            select: { id: true, vehicleId: true, dueTime: true },
+        });
+
+        const conflicts = existing.map(e => ({
+            vehicleId: e.vehicleId,
+            dueTime: Number(e.dueTime),
+            existingJobId: e.id,
+        }));
 
         return { hasConflicts: conflicts.length > 0, conflicts };
     }
 
-    // şablondan sefer üretme
+    // Şablondan sefer üretme — tek toplu sorgu + createMany
     static async generateFromTemplate(data: { templateId: number; startDate: string; endDate: string }) {
         const template = await prisma.template.findUnique({
             where: { id: data.templateId, isDeleted: false },
@@ -113,56 +118,53 @@ export class JobsService {
 
         const start = new Date(data.startDate);
         const end = new Date(data.endDate);
-        const createdJobs: Prisma.PrismaPromise<Prisma.JobGetPayload<Record<string, never>>>[] = [];
 
-        // her gün için döngü
+        const candidates: { vehicleId: string; routeId: number | null; dueTime: bigint }[] = [];
+
         for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-            const currentDay = new Date(d);
-
             for (const tJob of template.jobs) {
-                // vehicleId yoksa seferi atla
                 if (!tJob.vehicleId) continue;
 
-                // şablon seferinin saat ve dakikasını al
                 const tTime = new Date(Number(tJob.dueTime));
-                const hours = tTime.getUTCHours();
-                const minutes = tTime.getUTCMinutes();
+                const jobTime = new Date(d);
+                jobTime.setUTCHours(tTime.getUTCHours(), tTime.getUTCMinutes(), 0, 0);
 
-                // o günün tarihine saati set et
-                const jobTime = new Date(currentDay);
-                jobTime.setUTCHours(hours, minutes, 0, 0);
-                const timestamp = jobTime.getTime();
-
-                // araç çakışma kontrolü
-                const conflict = await prisma.job.findUnique({
-                    where: { vehicleId_dueTime: { vehicleId: tJob.vehicleId, dueTime: BigInt(timestamp) } },
+                candidates.push({
+                    vehicleId: tJob.vehicleId,
+                    routeId: tJob.routeId,
+                    dueTime: BigInt(jobTime.getTime()),
                 });
-                if (conflict) continue;
-
-                createdJobs.push(
-                    prisma.job.create({
-                        data: {
-                            dueTime: BigInt(timestamp),
-                            status: 1,
-                            type: 1,
-                            vehicleId: tJob.vehicleId,
-                            routeId: tJob.routeId,
-                        },
-                    })
-                );
             }
         }
 
-        if (createdJobs.length > 0) {
-            await prisma.$transaction(createdJobs);
-        }
+        if (candidates.length === 0) return { success: true, count: 0 };
 
-        return { success: true, count: createdJobs.length };
+        // Tüm çakışmaları tek sorguda bul
+        const existingJobs = await prisma.job.findMany({
+            where: { OR: candidates.map(c => ({ vehicleId: c.vehicleId, dueTime: c.dueTime })) },
+            select: { vehicleId: true, dueTime: true },
+        });
+
+        const conflictSet = new Set(existingJobs.map(j => `${j.vehicleId}:${j.dueTime}`));
+        const toCreate = candidates.filter(c => !conflictSet.has(`${c.vehicleId}:${c.dueTime}`));
+
+        if (toCreate.length === 0) return { success: true, count: 0 };
+
+        const result = await prisma.job.createMany({
+            data: toCreate.map(c => ({
+                vehicleId: c.vehicleId,
+                routeId: c.routeId,
+                dueTime: c.dueTime,
+                status: 1,
+                type: 1,
+            })),
+            skipDuplicates: true,
+        });
+
+        return { success: true, count: result.count };
     }
 
-    // takvim için istatistikleri getir (günlük sefer sayısı)
     static async getCalendarStats(month: string) {
-        // month: "2024-02" formatında gelmeli
         const monthStart = new Date(month + '-01');
         const nextMonth = new Date(monthStart);
         nextMonth.setMonth(nextMonth.getMonth() + 1);
@@ -171,10 +173,8 @@ export class JobsService {
         const endTs = new Date(nextMonth.getTime() - 1).getTime();
 
         const jobs = await prisma.job.findMany({
-            where: {
-                dueTime: { gte: BigInt(startTs), lte: BigInt(endTs) },
-            },
-            select: { dueTime: true }
+            where: { dueTime: { gte: BigInt(startTs), lte: BigInt(endTs) } },
+            select: { dueTime: true },
         });
 
         const stats: Record<string, number> = {};

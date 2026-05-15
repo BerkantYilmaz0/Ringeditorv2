@@ -33,7 +33,7 @@ export const VehicleUpdateSchema = z.object({
 export type VehicleCreateInput = z.infer<typeof VehicleCreateSchema>['body'];
 export type VehicleUpdateInput = z.infer<typeof VehicleUpdateSchema>['body'];
 
-// eski isimle geriye uyumluluk
 export const DeviceSchema = VehicleCreateSchema;
+export const DeviceUpdateSchema = VehicleUpdateSchema;
 export type DeviceCreateInput = VehicleCreateInput;
 export type DeviceUpdateInput = VehicleUpdateInput;

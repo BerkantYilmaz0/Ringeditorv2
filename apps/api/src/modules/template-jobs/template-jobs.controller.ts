@@ -16,7 +16,7 @@ export class TemplateJobsController {
         try {
             const templateId = parseId(req.params.templateId);
             const result = await TemplateJobsService.bulkCreate(templateId, req.body.items);
-            res.status(201).json(ResponseFormatter.success(result));
+            res.status(201).json(ResponseFormatter.success(result, 201));
         } catch (error) { next(error); }
     }
 

@@ -29,7 +29,7 @@ export class JobsController {
     static async create(req: Request, res: Response, next: NextFunction) {
         try {
             const job = await JobsService.create(req.body);
-            res.status(201).json(ResponseFormatter.success(job));
+            res.status(201).json(ResponseFormatter.success(job, 201));
         } catch (error) { next(error); }
     }
 

@@ -1,15 +1,14 @@
 import { prisma } from '../../config/database';
 import { ApiError } from '../../utils/api-error';
-import { VehicleCreateInput, VehicleUpdateInput } from '@ring-planner/shared';
+import { DeviceCreateInput, DeviceUpdateInput } from '@ring-planner/shared';
+import { pageSkip } from '../../utils/paginate';
 
 export class DevicesService {
-    // tüm araçları sayfalı ve aramalı getir
     static async findAll(page: number = 1, limit: number = 10, search?: string) {
-        const skip = (page - 1) * limit;
-
-        const whereClause = search ? {
-            plate: { contains: search, mode: 'insensitive' as const }
-        } : {};
+        const skip = pageSkip(page, limit);
+        const whereClause = search
+            ? { plate: { contains: search, mode: 'insensitive' as const } }
+            : {};
 
         const [vehicles, total] = await Promise.all([
             prisma.vehicle.findMany({
@@ -17,23 +16,21 @@ export class DevicesService {
                 skip,
                 take: limit,
                 orderBy: { plate: 'asc' },
-                include: { driver: true }
+                include: { driver: true },
             }),
             prisma.vehicle.count({ where: whereClause }),
         ]);
 
-        return { vehicles, total, page, limit, totalPages: Math.ceil(total / limit) };
+        return { vehicles, total };
     }
 
-    // id'ye göre tek araç getir
     static async findById(id: string) {
         const vehicle = await prisma.vehicle.findUnique({ where: { id } });
         if (!vehicle) throw ApiError.notFound('Araç bulunamadı');
         return vehicle;
     }
 
-    // yeni araç oluştur
-    static async create(data: VehicleCreateInput) {
+    static async create(data: DeviceCreateInput) {
         const existingPlate = await prisma.vehicle.findUnique({ where: { plate: data.plate } });
         if (existingPlate) throw ApiError.conflict('Bu plakaya sahip bir araç zaten mevcut');
 
@@ -58,8 +55,7 @@ export class DevicesService {
         });
     }
 
-    // araç güncelle
-    static async update(id: string, data: VehicleUpdateInput) {
+    static async update(id: string, data: DeviceUpdateInput) {
         await this.findById(id);
 
         if (data.plate) {
@@ -69,10 +65,14 @@ export class DevicesService {
             if (existingPlate) throw ApiError.conflict('Belirtilen plaka başka bir araç tarafından kullanılıyor');
         }
 
-        return prisma.vehicle.update({ where: { id }, data });
+        // Yalnızca izin verilen alanları Prisma'ya geçir
+        const { plate, brand, model, year, color, trackerId, simNumber, description, driverId, isActive } = data;
+        return prisma.vehicle.update({
+            where: { id },
+            data: { plate, brand, model, year, color, trackerId, simNumber, description, driverId, isActive },
+        });
     }
 
-    // araç sil
     static async delete(id: string) {
         await this.findById(id);
         await prisma.vehicle.delete({ where: { id } });

@@ -29,7 +29,7 @@ export class DevicesController {
     static async create(req: Request, res: Response, next: NextFunction) {
         try {
             const newDevice = await DevicesService.create(req.body);
-            res.status(201).json(ResponseFormatter.success(newDevice));
+            res.status(201).json(ResponseFormatter.success(newDevice, 201));
         } catch (error) {
             next(error);
         }

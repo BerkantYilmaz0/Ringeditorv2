@@ -28,7 +28,7 @@ export class UsersController {
     static async create(req: Request, res: Response, next: NextFunction) {
         try {
             const newUser = await UsersService.create(req.body);
-            res.status(201).json(ResponseFormatter.success(newUser));
+            res.status(201).json(ResponseFormatter.success(newUser, 201));
         } catch (error) {
             next(error);
         }

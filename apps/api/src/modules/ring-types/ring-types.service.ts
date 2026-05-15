@@ -4,11 +4,11 @@ import { ApiError } from '../../utils/api-error';
 export class RingTypesService {
     // tüm ring tiplerini getir (soft delete filtrelemeli)
     static async findAll() {
-        const ringTypes = await prisma.ringType.findMany({
+        return prisma.ringType.findMany({
             where: { isDeleted: false },
             orderBy: { name: 'asc' },
+            take: 200,
         });
-        return ringTypes;
     }
 
     // id'ye göre tek bir ring tipi getir

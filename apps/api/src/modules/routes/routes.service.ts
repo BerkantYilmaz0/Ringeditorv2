@@ -1,10 +1,11 @@
 import { prisma } from '../../config/database';
 import { ApiError } from '../../utils/api-error';
 import { Prisma } from '@prisma/client';
+import { pageSkip } from '../../utils/paginate';
 
 export class RoutesService {
     static async findAll(page: number = 1, limit: number = 10) {
-        const skip = (page - 1) * limit;
+        const skip = pageSkip(page, limit);
         const [routes, total] = await Promise.all([
             prisma.route.findMany({
                 skip,
@@ -14,7 +15,7 @@ export class RoutesService {
             }),
             prisma.route.count(),
         ]);
-        return { routes, total, page, limit, totalPages: Math.ceil(total / limit) };
+        return { routes, total };
     }
 
     static async findById(id: number) {
@@ -27,7 +28,6 @@ export class RoutesService {
     }
 
     static async create(data: { name: string; ringTypeId: number; color?: string; description?: string; geometry?: Prisma.InputJsonValue; stops?: { stopId: number; sequence: number }[] }) {
-        // ringType varlık kontrolü
         const ringType = await prisma.ringType.findUnique({ where: { id: data.ringTypeId } });
         if (!ringType) throw ApiError.notFound('Ring tipi bulunamadı');
 
@@ -66,7 +66,7 @@ export class RoutesService {
                 description: data.description,
                 geometry: data.geometry,
                 stops: data.stops !== undefined ? {
-                    deleteMany: {}, // Mevcutları sil
+                    deleteMany: {},
                     create: data.stops.map(s => ({
                         stop: { connect: { id: s.stopId } },
                         sequence: s.sequence,
@@ -79,7 +79,6 @@ export class RoutesService {
 
     static async delete(id: number) {
         await this.findById(id);
-        // bağlı job kontrolü
         const jobCount = await prisma.job.count({ where: { routeId: id } });
         if (jobCount > 0) {
             throw ApiError.conflict('Bu güzergaha bağlı seferler var');

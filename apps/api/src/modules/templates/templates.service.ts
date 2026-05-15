@@ -3,12 +3,12 @@ import { ApiError } from '../../utils/api-error';
 
 export class TemplatesService {
     static async findAll() {
-        const templates = await prisma.template.findMany({
+        return prisma.template.findMany({
             where: { isDeleted: false },
-            include: { _count: { select: { jobs: true } } },
+            include: { _count: { select: { jobs: { where: { isDeleted: false } } } } },
             orderBy: { createdAt: 'desc' },
+            take: 500,
         });
-        return templates;
     }
 
     static async findById(id: number) {
