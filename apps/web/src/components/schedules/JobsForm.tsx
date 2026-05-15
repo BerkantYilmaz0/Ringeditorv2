@@ -211,7 +211,7 @@ export default function JobsForm({
                 dueTime: jobDate.getTime(),
                 routeId: parseInt(editRouteId),
                 vehicleId: editVehicleId === "null" || editVehicleId === "" ? undefined : editVehicleId,
-                type: 1
+                type: 'REGULAR'
             });
 
             // UI refresh
