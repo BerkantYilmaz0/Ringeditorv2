@@ -28,7 +28,7 @@ services:
     environment:
       POSTGRES_DB: ringplanner
       POSTGRES_USER: ringplanner
-      POSTGRES_PASSWORD: REDACTED
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
@@ -90,7 +90,7 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql://ringplanner:REDACTED@db:5432/ringplanner
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ringplanner}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-ringplanner}
       REDIS_URL: redis://redis:6379
       OSRM_URL: http://osrm:5000
     networks:
