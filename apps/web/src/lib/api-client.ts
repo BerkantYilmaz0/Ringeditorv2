@@ -1,7 +1,7 @@
 // Backend API ile iletişimi yöneten fetch wrapper
 
 const getApiBaseUrl = () => {
-    let url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+    let url = process.env.NEXT_PUBLIC_API_URL || 'https://byilmaz.tech/api/v1';
 
     // Railway tırnaklarını temizle ve boşlukları at
     url = url.replace(/['"]+/g, '').trim();

@@ -75,3 +75,6 @@ packages/shared/dist/
 
 # Prisma Generated Client
 apps/api/src/generated/
+
+# Agent/AI tool configs
+.gemini/

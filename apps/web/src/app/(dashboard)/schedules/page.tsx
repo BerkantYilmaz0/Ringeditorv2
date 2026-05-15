@@ -35,6 +35,16 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 // V3 Bileşenleri
 import CalendarView from '@/components/schedules/CalendarView';
@@ -60,6 +70,7 @@ export default function SchedulesPage() {
 
     const [isJobsFormOpen, setIsJobsFormOpen] = useState(false);
     const [initialEditingJobId, setInitialEditingJobId] = useState<number | null>(null);
+    const [deleteConfirmJob, setDeleteConfirmJob] = useState<Job | null>(null);
 
     const fetchData = useCallback(async () => {
         if (viewMode !== 'day') return;
@@ -125,7 +136,7 @@ export default function SchedulesPage() {
 
     const handleCreateJob = async () => {
         if (!newJobRouteId || !newJobVehicleId || !newJobTime) {
-            alert('Lütfen tüm alanları doldurun!');
+            toast.error('Lütfen tüm alanları doldurun!');
             return;
         }
 
@@ -152,14 +163,20 @@ export default function SchedulesPage() {
         }
     };
 
-    const handleDeleteJob = async (job: Job) => {
-        if (!confirm(`${format(new Date(Number(job.dueTime)), 'HH:mm')} seferini iptal etmek istediğinize emin misiniz?`)) return;
+    const handleDeleteJob = (job: Job) => {
+        setDeleteConfirmJob(job);
+    };
+
+    const handleConfirmDeleteJob = async () => {
+        if (!deleteConfirmJob) return;
         try {
-            await deleteJob(job.id);
+            await deleteJob(deleteConfirmJob.id);
             fetchData();
             toast.success('Sefer silindi');
-        } catch (error) {
+        } catch {
             toast.error('Sefer silinemedi!');
+        } finally {
+            setDeleteConfirmJob(null);
         }
     };
 
@@ -333,6 +350,30 @@ export default function SchedulesPage() {
                 onUpdate={fetchData}
                 initialEditingJobId={initialEditingJobId}
             />
+
+            <AlertDialog open={deleteConfirmJob !== null} onOpenChange={(open) => !open && setDeleteConfirmJob(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Seferi İptal Et</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {deleteConfirmJob && (
+                                <>
+                                    <span className="font-semibold">{format(new Date(Number(deleteConfirmJob.dueTime)), 'HH:mm')}</span> saatindeki bu seferi iptal etmek istediğinize emin misiniz? Bu işlem geri alınamaz.
+                                </>
+                            )}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Vazgeç</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-red-600 hover:bg-red-700 text-white"
+                            onClick={handleConfirmDeleteJob}
+                        >
+                            İptal Et
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

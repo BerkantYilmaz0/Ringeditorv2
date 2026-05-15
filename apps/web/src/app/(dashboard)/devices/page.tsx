@@ -1,19 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import {
-    getVehicles,
-    PaginatedVehicles,
-    Vehicle,
-    deleteVehicle
-} from '@/lib/devices';
-import {
-    Plus,
-    Search,
-    Edit2,
-    Trash2,
-    Car
-} from 'lucide-react';
+import { toast } from 'sonner';
+import { getVehicles, PaginatedVehicles, Vehicle, deleteVehicle } from '@/lib/devices';
+import { Plus, Search, Edit2, Trash2, Car } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -25,6 +15,16 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import VehicleDialog from './vehicle-dialog';
 
 export default function DevicesPage() {
@@ -36,12 +36,12 @@ export default function DevicesPage() {
 
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
+    const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-    // Debounce arama
     useEffect(() => {
         const timer = setTimeout(() => {
             setDebouncedSearch(search);
-            setPage(1); // arama değiştiğinde ilk sayfaya dön
+            setPage(1);
         }, 500);
         return () => clearTimeout(timer);
     }, [search]);
@@ -72,14 +72,16 @@ export default function DevicesPage() {
         setIsDialogOpen(true);
     };
 
-    const handleDelete = async (id: string) => {
-        if (!window.confirm('Bu aracı silmek istediğinize emin misiniz?')) return;
+    const handleConfirmDelete = async () => {
+        if (!deleteConfirmId) return;
         try {
-            await deleteVehicle(id);
+            await deleteVehicle(deleteConfirmId);
+            toast.success('Araç silindi');
             fetchData();
         } catch (error) {
-            console.error('Araç silinemedi:', error);
-            alert('Silme işlemi başarısız');
+            toast.error((error as Error).message || 'Silme işlemi başarısız');
+        } finally {
+            setDeleteConfirmId(null);
         }
     };
 
@@ -98,7 +100,7 @@ export default function DevicesPage() {
                 </Button>
             </div>
 
-            {/* Arama Barı ve Filtreler */}
+            {/* Arama Barı */}
             <div className="flex items-center gap-3">
                 <div className="relative w-full max-w-sm">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -192,7 +194,7 @@ export default function DevicesPage() {
                                                 variant="ghost"
                                                 size="icon"
                                                 className="h-8 w-8 text-slate-500 hover:text-rose-600 hover:bg-rose-50"
-                                                onClick={() => handleDelete(v.id)}
+                                                onClick={() => setDeleteConfirmId(v.id)}
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
@@ -244,6 +246,26 @@ export default function DevicesPage() {
                 vehicle={editingVehicle}
                 onSuccess={fetchData}
             />
+
+            <AlertDialog open={deleteConfirmId !== null} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Aracı Sil</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Bu aracı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>İptal</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-red-600 hover:bg-red-700 text-white"
+                            onClick={handleConfirmDelete}
+                        >
+                            Sil
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

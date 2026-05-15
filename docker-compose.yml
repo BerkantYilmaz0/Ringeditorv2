@@ -1,17 +1,43 @@
+version: '3.8'
+
+networks:
+  app-network:
+    driver: bridge
+
 services:
+  # ─── Nginx Reverse Proxy ───
+  nginx:
+    image: nginx:alpine
+    container_name: ringplanner-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - app-network
+    depends_on:
+      - api
+      - web
+
   # ─── PostgreSQL + PostGIS ───
   db:
     image: postgis/postgis:16-3.4
     container_name: ringplanner-db
     restart: unless-stopped
-    ports:
-      - "5432:5432"
     environment:
       POSTGRES_DB: ringplanner
       POSTGRES_USER: ringplanner
       POSTGRES_PASSWORD: REDACTED
     volumes:
       - pgdata:/var/lib/postgresql/data
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ringplanner" ]
       interval: 5s
@@ -23,59 +49,77 @@ services:
     image: redis:7-alpine
     container_name: ringplanner-redis
     restart: unless-stopped
-    ports:
-      - "6379:6379"
     volumes:
       - redis-data:/data
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 256M
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
       timeout: 5s
       retries: 5
 
+  # ─── OSRM (Rota Motoru) ───
   osrm:
     image: osrm/osrm-backend:latest
     container_name: ringplanner-osrm
     restart: unless-stopped
-    ports:
-      - "5000:5000"
     volumes:
       - ./osrm-data:/data
     command: osrm-routed --algorithm mld /data/ankara.osrm
-    profiles:
-      - routing
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
 
-  # ─── API Service ───
+  # ─── Node.js API ───
   api:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
-    container_name: ringplanner-api
+    container_name: api
     restart: unless-stopped
-    ports:
-      - "3001:3001"
     env_file:
       - .env
     environment:
-      - DATABASE_URL=postgresql://ringplanner:REDACTED@db:5432/ringplanner?schema=public
-      - REDIS_URL=redis://redis:6379
+      DATABASE_URL: postgresql://ringplanner:REDACTED@db:5432/ringplanner
+      REDIS_URL: redis://redis:6379
+      OSRM_URL: http://osrm:5000
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
 
-  # ─── Web Service ───
+  # ─── Next.js Web ───
   web:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
-      args:
-        - NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1
-    container_name: ringplanner-web
+    container_name: web
     restart: unless-stopped
-    ports:
-      - "3000:3000"
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
     depends_on:
       - api
 

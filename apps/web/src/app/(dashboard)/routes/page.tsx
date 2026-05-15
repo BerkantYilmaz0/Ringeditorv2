@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { toast } from 'sonner';
 import { getRoutes, createRoute, deleteRoute, Route, getOsrmRoute, GeoJSONLineString } from '@/lib/routes';
 import { getStops, Stop } from '@/lib/stops';
 import { getRingTypes, RingType } from '@/lib/ring-types';
@@ -28,6 +29,16 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { SortableStopsList } from '@/components/routes/SortableStopsList';
 
 const MapComponent = dynamic(() => import('@/components/map/MapComponent'), {
@@ -61,6 +72,7 @@ export default function RoutesPage() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [selectedRouteId, setSelectedRouteId] = useState<number | null>(null);
+    const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
     const form = useForm<RouteFormValues>({
         resolver: zodResolver(routeSchema),
@@ -128,7 +140,7 @@ export default function RoutesPage() {
 
     const handleCreateRoute = async (values: RouteFormValues) => {
         if (selectedStops.length < 2) {
-            alert('Lütfen haritadan en az 2 adet durak seçin!');
+            toast.error('Lütfen haritadan en az 2 adet durak seçin!');
             return;
         }
 
@@ -140,7 +152,6 @@ export default function RoutesPage() {
                 stops: stopsData
             });
 
-            // Yeni rotayı ringTypes içinden isim eşleyerek ufak bir fixle listeye ekle
             const rType = ringTypes.find(rt => rt.id === values.ringTypeId);
             newRoute.ringType = rType;
 
@@ -153,22 +164,23 @@ export default function RoutesPage() {
                 color: '#3b82f6',
                 ringTypeId: 0,
             });
-            alert('Güzergah başarıyla oluşturuldu!');
+            toast.success('Güzergah başarıyla oluşturuldu!');
         } catch (error: unknown) {
-            console.error('Güzergah oluşturma hatası:', error);
-            alert((error as Error).message || 'Ekleme başarısız!');
+            toast.error((error as Error).message || 'Ekleme başarısız!');
         }
     };
 
-    const handleDelete = async (id: number) => {
-        if (!window.confirm('Bu güzergahı silmek istediğinize emin misiniz?')) return;
+    const handleConfirmDelete = async () => {
+        if (deleteConfirmId === null) return;
         try {
-            await deleteRoute(id);
-            setRoutes(routes.filter(r => r.id !== id));
-            if (selectedRouteId === id) setSelectedRouteId(null);
+            await deleteRoute(deleteConfirmId);
+            setRoutes(routes.filter(r => r.id !== deleteConfirmId));
+            if (selectedRouteId === deleteConfirmId) setSelectedRouteId(null);
+            toast.success('Güzergah silindi');
         } catch (error: unknown) {
-            console.error('Güzergah silinemedi:', error);
-            alert((error as Error).message || 'Silme işlemi başarısız');
+            toast.error((error as Error).message || 'Silme işlemi başarısız');
+        } finally {
+            setDeleteConfirmId(null);
         }
     };
 
@@ -364,7 +376,7 @@ export default function RoutesPage() {
                                             className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2"
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                handleDelete(route.id);
+                                                setDeleteConfirmId(route.id);
                                             }}
                                         >
                                             <Trash2 className="h-4 w-4" />
@@ -390,10 +402,28 @@ export default function RoutesPage() {
                     backgroundGeometries={routes
                         .filter(r => r.id !== selectedRouteId && r.geometry)
                         .map(r => ({ id: r.id, geometry: r.geometry as GeoJSONLineString }))}
-                    masterGeometry={routes.find(r => r.geometry)?.geometry as GeoJSONLineString}
                 />
             </div>
 
+            <AlertDialog open={deleteConfirmId !== null} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Güzergahı Sil</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Bu güzergahı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>İptal</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-red-600 hover:bg-red-700 text-white"
+                            onClick={handleConfirmDelete}
+                        >
+                            Sil
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

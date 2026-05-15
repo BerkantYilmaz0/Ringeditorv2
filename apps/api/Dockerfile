@@ -36,12 +36,18 @@ FROM node:20-alpine AS runner
 RUN apk add --no-cache openssl
 WORKDIR /app
 
-COPY --from=builder /app/api-production ./
 # prisma şeması ve migrationları kopyala
+COPY --from=builder /app/api-production ./
 COPY --from=builder /app/apps/api/prisma ./prisma
 
 # production'da prisma client'ı tekrar oluştur (node_modules içine yazar)
+# Build aşamasında root olarak çalıştırıyoruz, sonra kullanıcıya devrediyoruz
 RUN npx prisma@6.3.0 generate
+
+# Non-root user creation and permissions
+RUN addgroup -S nodejs && adduser -S nodejs -G nodejs
+RUN chown -R nodejs:nodejs /app
+USER nodejs
 
 EXPOSE 3001
 CMD ["node", "dist/index.js"]

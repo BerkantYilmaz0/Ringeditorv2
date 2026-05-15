@@ -5,16 +5,11 @@ import dynamic from 'next/dynamic';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { toast } from 'sonner';
 import { getStops, createStop, deleteStop, Stop } from '@/lib/stops';
 import { Route } from '@/lib/routes';
 
-import {
-    MapPin,
-    Plus,
-    Trash2,
-    Search,
-    Loader2,
-} from 'lucide-react';
+import { MapPin, Plus, Trash2, Search, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -26,9 +21,17 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
-// Harita bileşenini SSR olmadan (Client Side) yüklüyoruz
 const MapComponent = dynamic(() => import('@/components/map/MapComponent'), {
     ssr: false,
     loading: () => (
@@ -49,17 +52,18 @@ type StopFormValues = z.infer<typeof stopSchema>;
 
 export default function StopsPage() {
     const [stops, setStops] = useState<Stop[]>([]);
-    const [routes, setRoutes] = useState<Route[]>([]); // Şebeke görünümü için
+    const [routes, setRoutes] = useState<Route[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [selectedStopId, setSelectedStopId] = useState<number | null>(null);
+    const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
     const form = useForm<StopFormValues>({
         resolver: zodResolver(stopSchema),
         defaultValues: {
             name: '',
             description: '',
-            lat: 39.92077, // Varsayılan: Ankara
+            lat: 39.92077,
             lng: 32.85411,
         }
     });
@@ -84,7 +88,6 @@ export default function StopsPage() {
         fetchData();
     }, [fetchData]);
 
-    // Haritaya tıklandığında koordinatları forma doldur
     const handleMapClick = (lat: number, lng: number) => {
         form.setValue('lat', parseFloat(lat.toFixed(6)));
         form.setValue('lng', parseFloat(lng.toFixed(6)));
@@ -94,28 +97,24 @@ export default function StopsPage() {
         try {
             const newStop = await createStop(values);
             setStops([...stops, newStop]);
-            form.reset({
-                name: '',
-                description: '',
-                lat: values.lat,
-                lng: values.lng
-            });
-            alert('Durak başarıyla eklendi!');
+            form.reset({ name: '', description: '', lat: values.lat, lng: values.lng });
+            toast.success('Durak başarıyla eklendi');
         } catch (error: unknown) {
-            console.error('Durak eklenemedi:', error);
-            alert((error as Error).message || 'Ekleme başarısız!');
+            toast.error((error as Error).message || 'Ekleme başarısız');
         }
     };
 
-    const handleDelete = async (id: number) => {
-        if (!window.confirm('Bu durağı silmek istediğinize emin misiniz?')) return;
+    const handleConfirmDelete = async () => {
+        if (deleteConfirmId === null) return;
         try {
-            await deleteStop(id);
-            setStops(stops.filter(s => s.id !== id));
-            if (selectedStopId === id) setSelectedStopId(null);
+            await deleteStop(deleteConfirmId);
+            setStops(stops.filter(s => s.id !== deleteConfirmId));
+            if (selectedStopId === deleteConfirmId) setSelectedStopId(null);
+            toast.success('Durak silindi');
         } catch (error: unknown) {
-            console.error('Durak silinemedi:', error);
-            alert((error as Error).message || 'Silme işlemi başarısız');
+            toast.error((error as Error).message || 'Silme işlemi başarısız');
+        } finally {
+            setDeleteConfirmId(null);
         }
     };
 
@@ -248,7 +247,7 @@ export default function StopsPage() {
                                             className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                handleDelete(stop.id);
+                                                setDeleteConfirmId(stop.id);
                                             }}
                                         >
                                             <Trash2 className="h-4 w-4" />
@@ -259,7 +258,6 @@ export default function StopsPage() {
                         )}
                     </CardContent>
                 </Card>
-
             </div>
 
             {/* Sağ Panel: Harita */}
@@ -269,13 +267,32 @@ export default function StopsPage() {
                     onMapClick={handleMapClick}
                     onMarkerClick={setSelectedStopId}
                     selectedStopId={selectedStopId}
-                    center={[39.92077, 32.85411]} // Varsayılan konum
+                    center={[39.92077, 32.85411]}
                     backgroundGeometries={routes
                         .filter(r => r.geometry)
                         .map(r => ({ id: r.id, geometry: r.geometry! }))}
                 />
             </div>
 
+            <AlertDialog open={deleteConfirmId !== null} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Durağı Sil</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Bu durağı silmek istediğinize emin misiniz? Durağa bağlı güzergahlar varsa silme işlemi başarısız olur.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>İptal</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-red-600 hover:bg-red-700 text-white"
+                            onClick={handleConfirmDelete}
+                        >
+                            Sil
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

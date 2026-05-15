@@ -37,6 +37,10 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
+# Non-root user creation
+RUN addgroup -S nodejs && adduser -S nodejs -G nodejs
+USER nodejs
+
 # Next.js standalone çıktısı
 COPY --from=builder /app/apps/web/.next/standalone ./
 COPY --from=builder /app/apps/web/.next/static ./apps/web/.next/static
