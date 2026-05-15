@@ -82,9 +82,7 @@ services:
 
   # ─── Node.js API ───
   api:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
+    image: ghcr.io/berkantyilmaz0/ringeditorv2-api:${IMAGE_TAG:-latest}
     container_name: api
     restart: unless-stopped
     env_file:
@@ -114,9 +112,7 @@ services:
 
   # ─── Next.js Web ───
   web:
-    build:
-      context: .
-      dockerfile: apps/web/Dockerfile
+    image: ghcr.io/berkantyilmaz0/ringeditorv2-web:${IMAGE_TAG:-latest}
     container_name: web
     restart: unless-stopped
     networks:

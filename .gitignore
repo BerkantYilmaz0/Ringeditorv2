@@ -78,3 +78,4 @@ apps/api/src/generated/
 
 # Agent/AI tool configs
 .gemini/
+.agents/
