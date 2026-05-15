@@ -1,10 +1,11 @@
 import { prisma } from '../../config/database';
 import { ApiError } from '../../utils/api-error';
 import { Prisma } from '@prisma/client';
+import { pageSkip } from '../../utils/paginate';
 
 export class StopsService {
     static async findAll(page: number = 1, limit: number = 10, search?: string) {
-        const skip = (page - 1) * limit;
+        const skip = pageSkip(page, limit);
         const where = search
             ? { name: { contains: search, mode: Prisma.QueryMode.insensitive } }
             : {};
@@ -15,18 +16,11 @@ export class StopsService {
                 take: limit,
                 where,
                 orderBy: { name: 'asc' },
-                include: {
-                    routes: {
-                        include: {
-                            route: true
-                        }
-                    }
-                }
             }),
             prisma.stop.count({ where }),
         ]);
 
-        return { stops, total, page, limit, totalPages: Math.ceil(total / limit) };
+        return { stops, total };
     }
 
     static async findById(id: number) {
@@ -46,7 +40,6 @@ export class StopsService {
 
     static async delete(id: number) {
         await this.findById(id);
-        // bağlı routeStop kontrolü
         const routeStopCount = await prisma.routeStop.count({ where: { stopId: id } });
         if (routeStopCount > 0) {
             throw ApiError.conflict('Bu durağa bağlı güzergahlar var, önce onları silin');

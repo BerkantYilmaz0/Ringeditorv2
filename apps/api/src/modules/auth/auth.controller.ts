@@ -84,6 +84,12 @@ export class AuthController {
                 }
             }
 
+            // Refresh token'ı da blacklist'e al
+            const refreshToken = req.cookies.refresh_token;
+            if (refreshToken) {
+                await AuthService.blacklistRefreshToken(refreshToken);
+            }
+
             res.clearCookie('access_token', COOKIE_OPTIONS);
             res.clearCookie('refresh_token', COOKIE_OPTIONS);
 

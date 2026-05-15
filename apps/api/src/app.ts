@@ -16,8 +16,12 @@ import { errorHandler } from './middleware/error.middleware';
 
 // Routes
 import apiRoutes from './routes';
+import { rateLimiter } from './middleware/rate-limit.middleware';
 
 export const app: Application = express();
+
+// Nginx reverse proxy arkasında çalıştığı için X-Forwarded-For başlığına güven
+app.set('trust proxy', 1);
 
 // 1. Güvenlik ve Temel Katmanlar
 app.use(helmet()); // Varsayılan güçlü HTTP koruma başlıkları
@@ -34,7 +38,8 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // HTTP Parametre Kirliliği Koruması (Parserlardan sonra olmalı)
 app.use(hpp());
 
-// 3. Rate Limitleri (Global seviye iptal edildi, sadece login korumalı)
+// 3. Rate Limitleri
+app.use(rateLimiter);
 
 // 4. API Route'ları
 app.use('/api/v1', apiRoutes);
