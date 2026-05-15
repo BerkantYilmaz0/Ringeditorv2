@@ -98,6 +98,7 @@ pnpm db:seed
 ---
 
 ### Sistem Genel Akışı
+[Detaylı akış için tıklayınız](akis.md)
 
 Sistem dört ana katmandan oluşur; her katman bir sonrakinin temelini oluşturur.
 
