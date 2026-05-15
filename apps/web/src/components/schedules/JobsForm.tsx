@@ -115,7 +115,7 @@ export default function JobsForm({
     const filteredFutureJobs = useMemo(() => {
         const now = new Date();
         return jobs.filter(job => {
-            const jobDate = new Date(Number(job.dueTime));
+            const jobDate = new Date(new Date(job.dueTime).getTime());
             // Seçilen güne ait mi? Zaten parent component filters date=... 
             // Eğer selectedDate = bugün ise geçmiş saatleri gizle
             return isAfter(jobDate, now) || format(now, 'yyyy-MM-dd') !== date;
@@ -127,7 +127,7 @@ export default function JobsForm({
         if (!searchTerm) return filteredFutureJobs;
         const term = searchTerm.toLowerCase();
         return filteredFutureJobs.filter(job => {
-            const timeStr = format(new Date(Number(job.dueTime)), 'HH:mm');
+            const timeStr = format(new Date(new Date(job.dueTime).getTime()), 'HH:mm');
             const ringName = job.route?.ringType?.name?.toLowerCase() || '';
             const plate = job.vehicle?.plate?.toLowerCase() || '';
             return timeStr.includes(term) || ringName.includes(term) || plate.includes(term);
@@ -166,7 +166,7 @@ export default function JobsForm({
 
     const handleStartEdit = (job: Job) => {
         setEditingJobId(job.id);
-        setEditTime(format(new Date(Number(job.dueTime)), 'HH:mm'));
+        setEditTime(format(new Date(new Date(job.dueTime).getTime()), 'HH:mm'));
         setEditRingTypeId(job.route?.ringTypeId?.toString() || '');
         setEditRouteId(job.routeId?.toString() || '');
         setEditVehicleId(job.vehicleId);
@@ -194,7 +194,7 @@ export default function JobsForm({
             // Çakışma Kontrolü
             const isDuplicate = jobs.some(job =>
                 job.id !== editingJobId &&
-                Number(job.dueTime) === jobDate.getTime() &&
+                new Date(job.dueTime).getTime() === jobDate.getTime() &&
                 job.routeId === parseInt(editRouteId) &&
                 (job.vehicleId === (editVehicleId === "null" || editVehicleId === "" ? undefined : editVehicleId))
             );
@@ -418,7 +418,7 @@ export default function JobsForm({
                                                             </div>
                                                             <div className="w-24 font-mono font-bold text-slate-700 flex items-center gap-1.5">
                                                                 <Clock className="w-3.5 h-3.5 text-slate-300" />
-                                                                {format(new Date(Number(job.dueTime)), 'HH:mm')}
+                                                                {format(new Date(new Date(job.dueTime).getTime()), 'HH:mm')}
                                                             </div>
                                                             <div className="w-48 flex items-center gap-2">
                                                                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: group.ringType.color || '#ccc' }} />

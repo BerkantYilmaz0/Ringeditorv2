@@ -42,7 +42,7 @@ export default function BulkDialog({ open, onOpenChange, baseJob, existingJobs, 
             setIsPushed(false);
 
             // Başlangıç saatini belirle ve çakışma varsa otomaitk ötele
-            const d = new Date(Number(baseJob.dueTime));
+            const d = new Date(new Date(baseJob.dueTime).getTime());
             const startVal = d.getTime();
 
             // Eğer aynı araç ve ring tipe sahip ve saat/dakikası aynı olan başka kayıt varsa, o saatte ekleme yapmamak için start time'ı frekans kadar ötele
@@ -104,7 +104,7 @@ export default function BulkDialog({ open, onOpenChange, baseJob, existingJobs, 
                 if (j.id === baseJob.id) return false;
                 if (j.vehicleId !== baseJob.vehicleId) return false;
 
-                const jDate = new Date(Number(j.dueTime));
+                const jDate = new Date(new Date(j.dueTime).getTime());
                 return format(jDate, 'HH:mm') === formatStr;
             });
 

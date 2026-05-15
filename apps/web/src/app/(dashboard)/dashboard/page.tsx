@@ -131,9 +131,9 @@ export default function DashboardPage() {
                                 {stats.upcomingJobs.map((job) => (
                                     <TableRow key={job.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors group">
                                         <TableCell className="font-medium whitespace-nowrap px-4 py-5">
-                                            <div className="text-slate-900 font-semibold">{format(Number(job.dueTime), 'HH:mm', { locale: tr })}</div>
+                                            <div className="text-slate-900 font-semibold">{format(new Date(job.dueTime).getTime(), 'HH:mm', { locale: tr })}</div>
                                             <div className="text-xs text-slate-400 mt-0.5">
-                                                {format(Number(job.dueTime), 'dd MMM yyyy', { locale: tr })}
+                                                {format(new Date(job.dueTime).getTime(), 'dd MMM yyyy', { locale: tr })}
                                             </div>
                                         </TableCell>
                                         <TableCell>

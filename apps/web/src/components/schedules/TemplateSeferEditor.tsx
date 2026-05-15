@@ -146,7 +146,7 @@ export default function TemplateSeferEditor({ open, onOpenChange, template, onUp
 
         // Çakışma Kontrolü
         const isDuplicate = templateJobs.some(job =>
-            Number(job.dueTime) === timestamp &&
+            new Date(job.dueTime).getTime() === timestamp &&
             job.ringTypeId === parseInt(newRingTypeId) &&
             job.routeId === parseInt(newRouteId) &&
             (job.vehicleId === (newVehicleId || undefined))
@@ -185,7 +185,7 @@ export default function TemplateSeferEditor({ open, onOpenChange, template, onUp
 
     const handleStartEdit = (job: TemplateJob) => {
         setEditingJobId(job.id);
-        const jobDate = new Date(Number(job.dueTime));
+        const jobDate = new Date(new Date(job.dueTime).getTime());
         setEditTime(format(jobDate, 'HH:mm'));
         setEditRingTypeId(job.ringTypeId.toString());
         setEditRouteId(job.routeId.toString());
@@ -207,7 +207,7 @@ export default function TemplateSeferEditor({ open, onOpenChange, template, onUp
         // Çakışma Kontrolü
         const isDuplicate = templateJobs.some(job =>
             job.id !== editingJobId &&
-            Number(job.dueTime) === timestamp &&
+            new Date(job.dueTime).getTime() === timestamp &&
             job.ringTypeId === parseInt(editRingTypeId) &&
             job.routeId === parseInt(editRouteId) &&
             (job.vehicleId === (editVehicleId === "null" ? undefined : editVehicleId))
@@ -500,7 +500,7 @@ export default function TemplateSeferEditor({ open, onOpenChange, template, onUp
                                                             </div>
                                                             <div className="w-24 font-mono font-bold text-slate-600 flex items-center gap-1.5">
                                                                 <Clock className="h-3 w-3 opacity-30" />
-                                                                {format(new Date(Number(job.dueTime)), 'HH:mm')}
+                                                                {format(new Date(new Date(job.dueTime).getTime()), 'HH:mm')}
                                                             </div>
                                                             <div className="flex-1 flex items-center gap-2">
                                                                 <MapPin className="h-3.5 w-3.5 text-slate-300" />

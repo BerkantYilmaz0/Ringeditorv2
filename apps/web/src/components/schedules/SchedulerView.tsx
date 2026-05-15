@@ -19,7 +19,7 @@ interface SchedulerViewProps {
 export default function SchedulerView({ date, jobs, onEventClick, onSlotClick, onEventDrop }: SchedulerViewProps) {
     // Job verilerini FullCalendar eventlerine dönüştür
     const events = React.useMemo(() => jobs.map(job => {
-        const startTime = new Date(Number(job.dueTime));
+        const startTime = new Date(new Date(job.dueTime).getTime());
         // Her seferi görsel olarak 10 dakikalık bir blok gibi gösterelim (1 slot)
         const endTime = new Date(startTime.getTime() + 10 * 60 * 1000);
 
