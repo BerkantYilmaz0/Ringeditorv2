@@ -6,12 +6,13 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
-import { getStops, createStop, deleteStop, Stop } from '@/lib/stops';
+import { getStops, createStop, updateStop, deleteStop, Stop } from '@/lib/stops';
 import { Route } from '@/lib/routes';
 
-import { MapPin, Plus, Trash2, Search, Loader2 } from 'lucide-react';
+import { MapPin, Plus, Trash2, Search, Loader2, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
     Form,
     FormControl,
@@ -21,6 +22,13 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from '@/components/ui/dialog';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -57,6 +65,9 @@ export default function StopsPage() {
     const [search, setSearch] = useState('');
     const [selectedStopId, setSelectedStopId] = useState<number | null>(null);
     const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+    const [editingStop, setEditingStop] = useState<Stop | null>(null);
+    const [editForm, setEditForm] = useState({ name: '', description: '', lat: 0, lng: 0 });
+    const [isEditSaving, setIsEditSaving] = useState(false);
 
     const form = useForm<StopFormValues>({
         resolver: zodResolver(stopSchema),
@@ -73,10 +84,10 @@ export default function StopsPage() {
             setLoading(true);
             const [stopsRes, routesRes] = await Promise.all([
                 getStops(1, 500),
-                import('@/lib/routes').then(m => m.getRoutes(1, 100))
+                import('@/lib/routes').then(m => m.getAllRoutes())
             ]);
             setStops(stopsRes.stops);
-            setRoutes(routesRes.routes);
+            setRoutes(routesRes);
         } catch (error) {
             console.error('Veriler yüklenirken hata:', error);
         } finally {
@@ -115,6 +126,26 @@ export default function StopsPage() {
             toast.error((error as Error).message || 'Silme işlemi başarısız');
         } finally {
             setDeleteConfirmId(null);
+        }
+    };
+
+    const openEdit = (stop: Stop) => {
+        setEditingStop(stop);
+        setEditForm({ name: stop.name, description: stop.description || '', lat: stop.lat, lng: stop.lng });
+    };
+
+    const handleEditSave = async () => {
+        if (!editingStop) return;
+        setIsEditSaving(true);
+        try {
+            const updated = await updateStop(editingStop.id, editForm);
+            setStops(stops.map(s => s.id === updated.id ? updated : s));
+            toast.success('Durak güncellendi');
+            setEditingStop(null);
+        } catch (error: unknown) {
+            toast.error((error as Error).message || 'Güncelleme başarısız');
+        } finally {
+            setIsEditSaving(false);
         }
     };
 
@@ -241,17 +272,24 @@ export default function StopsPage() {
                                                 {stop.lat.toFixed(5)}, {stop.lng.toFixed(5)}
                                             </p>
                                         </div>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setDeleteConfirmId(stop.id);
-                                            }}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
+                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50"
+                                                onClick={(e) => { e.stopPropagation(); openEdit(stop); }}
+                                            >
+                                                <Pencil className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                                                onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(stop.id); }}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -273,6 +311,40 @@ export default function StopsPage() {
                         .map(r => ({ id: r.id, geometry: r.geometry! }))}
                 />
             </div>
+
+            <Dialog open={!!editingStop} onOpenChange={(open) => !open && setEditingStop(null)}>
+                <DialogContent className="sm:max-w-[400px]">
+                    <DialogHeader>
+                        <DialogTitle>Durağı Düzenle</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                        <div className="space-y-1.5">
+                            <Label>Durak Adı</Label>
+                            <Input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label>Açıklama</Label>
+                            <Input value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} placeholder="Opsiyonel" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1.5">
+                                <Label>Enlem (Lat)</Label>
+                                <Input type="number" step="any" value={editForm.lat} onChange={e => setEditForm(f => ({ ...f, lat: parseFloat(e.target.value) }))} />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label>Boylam (Lng)</Label>
+                                <Input type="number" step="any" value={editForm.lng} onChange={e => setEditForm(f => ({ ...f, lng: parseFloat(e.target.value) }))} />
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="ghost" onClick={() => setEditingStop(null)}>İptal</Button>
+                        <Button onClick={handleEditSave} disabled={isEditSaving || !editForm.name}>
+                            {isEditSaving ? 'Kaydediliyor...' : 'Kaydet'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <AlertDialog open={deleteConfirmId !== null} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
                 <AlertDialogContent>

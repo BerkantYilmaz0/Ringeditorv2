@@ -14,7 +14,7 @@ import {
 import { toast } from 'sonner';
 
 import { getJobs, createJob, updateJob, deleteJob, Job } from '@/lib/jobs';
-import { getRoutes, Route } from '@/lib/routes';
+import { getAllRoutes, Route } from '@/lib/routes';
 import { getVehicles, Vehicle } from '@/lib/devices';
 import { getRingTypes, RingType } from '@/lib/ring-types';
 import { Button } from '@/components/ui/button';
@@ -77,11 +77,11 @@ export default function SchedulesPage() {
         try {
             const [jobsRes, routesRes, vehiclesRes] = await Promise.all([
                 getJobs(1, 100, { date: selectedDate }),
-                getRoutes(1, 100),
+                getAllRoutes(),
                 getVehicles(1, 100)
             ]);
             setJobs(jobsRes.data);
-            setRoutes(routesRes.routes);
+            setRoutes(routesRes);
             setVehicles(vehiclesRes.vehicles);
         } catch (error) {
             console.error('Veri çekme hatası:', error);
@@ -90,11 +90,11 @@ export default function SchedulesPage() {
 
     const fetchInitialData = async () => {
         const [routesRes, vehiclesRes, ringsRes] = await Promise.all([
-            getRoutes(1, 100),
+            getAllRoutes(),
             getVehicles(1, 100),
             getRingTypes()
         ]);
-        setRoutes(routesRes.routes);
+        setRoutes(routesRes);
         setVehicles(vehiclesRes.vehicles);
         setRingTypes(ringsRes);
     }

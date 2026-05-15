@@ -60,6 +60,11 @@ export async function getRoutes(page: number = 1, limit: number = 20): Promise<P
     };
 }
 
+export async function getAllRoutes(): Promise<Route[]> {
+    const res = await getRoutes(1, 999);
+    return res.routes;
+}
+
 export async function createRoute(data: Partial<Route> & { stops: { stopId: number; sequence: number }[] }): Promise<Route> {
     return api.post<Route>('/routes', data as Record<string, unknown>);
 }

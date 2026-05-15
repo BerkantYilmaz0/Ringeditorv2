@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RouteCreateSchema } from '@ring-planner/shared';
 import { toast } from 'sonner';
-import { getRoutes, createRoute, deleteRoute, Route, getOsrmRoute, GeoJSONLineString } from '@/lib/routes';
+import { getAllRoutes, createRoute, deleteRoute, Route, getOsrmRoute, GeoJSONLineString } from '@/lib/routes';
 import { getStops, Stop } from '@/lib/stops';
 import { getRingTypes, RingType } from '@/lib/ring-types';
 
@@ -84,11 +84,11 @@ export default function RoutesPage() {
         try {
             setLoading(true);
             const [routesRes, stopsRes, ringTypesRes] = await Promise.all([
-                getRoutes(1, 100),
+                getAllRoutes(),
                 getStops(1, 500),
                 getRingTypes()
             ]);
-            setRoutes(routesRes.routes);
+            setRoutes(routesRes);
             setStops(stopsRes.stops);
             setRingTypes(ringTypesRes);
         } catch (error) {

@@ -26,7 +26,7 @@ import {
     Template,
     TemplateJob
 } from '@/lib/templates';
-import { getRoutes, Route } from '@/lib/routes';
+import { getAllRoutes, Route } from '@/lib/routes';
 import { getVehicles, Vehicle } from '@/lib/devices';
 import { getRingTypes, RingType } from '@/lib/ring-types';
 import { Button } from '@/components/ui/button';
@@ -111,12 +111,12 @@ export default function TemplateSeferEditor({ open, onOpenChange, template, onUp
         try {
             const [jobsData, routesRes, vehiclesRes, ringRes] = await Promise.all([
                 getTemplateJobs(template.id),
-                getRoutes(1, 100),
+                getAllRoutes(),
                 getVehicles(1, 100),
                 getRingTypes()
             ]);
             setTemplateJobs(jobsData);
-            setRoutes(routesRes.routes);
+            setRoutes(routesRes);
             setVehicles(vehiclesRes.vehicles);
             setRingTypes(ringRes);
         } catch (error) {
