@@ -20,7 +20,7 @@ import { Activity, Route as RouteIcon, CarFront, CheckCircle2 } from 'lucide-rea
 interface UpcomingJob {
     id: number;
     dueTime: string | number;
-    status: number;
+    status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
     vehicle?: {
         plate: string;
         name: string;
