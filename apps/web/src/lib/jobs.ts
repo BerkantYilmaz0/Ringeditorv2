@@ -2,11 +2,14 @@ import { api } from './api-client';
 import { Route } from './routes';
 import { Vehicle } from './devices';
 
+export type JobStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+export type JobType = 'REGULAR' | 'EXTRA';
+
 export interface Job {
     id: number;
     dueTime: number;
-    status: number;
-    type: number;
+    status: JobStatus;
+    type: JobType;
     vehicleId: string;
     routeId?: number;
     createdAt: string;
@@ -25,8 +28,8 @@ export interface CreateJobInput {
     vehicleId: string;
     dueTime: number;
     routeId?: number;
-    status?: number;
-    type?: number;
+    status?: JobStatus;
+    type?: JobType;
 }
 
 interface JobsApiResponse {
@@ -47,7 +50,7 @@ export const getJobs = async (page: number = 1, limit: number = 20, filters?: Jo
 
     const jobs = res.items.map((job: Record<string, unknown>) => ({
         ...job,
-        dueTime: Number(job.dueTime),
+        dueTime: new Date(job.dueTime as string).getTime(),
     }));
 
     return { data: jobs as Job[], meta: res.meta };
@@ -55,12 +58,12 @@ export const getJobs = async (page: number = 1, limit: number = 20, filters?: Jo
 
 export const createJob = async (data: CreateJobInput): Promise<Job> => {
     const res = await api.post<Record<string, unknown>>('/jobs', data as unknown as Record<string, unknown>);
-    return { ...res, dueTime: Number(res.dueTime) } as Job;
+    return { ...res, dueTime: new Date(res.dueTime as string).getTime() } as Job;
 };
 
 export const updateJob = async (id: number, data: Partial<CreateJobInput>): Promise<Job> => {
     const res = await api.put<Record<string, unknown>>(`/jobs/${id}`, data as unknown as Record<string, unknown>);
-    return { ...res, dueTime: Number(res.dueTime) } as Job;
+    return { ...res, dueTime: new Date(res.dueTime as string).getTime() } as Job;
 };
 
 export const deleteJob = async (id: number) => {

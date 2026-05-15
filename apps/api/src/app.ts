@@ -3,12 +3,6 @@ import helmet from 'helmet';
 import hpp from 'hpp';
 import cookieParser from 'cookie-parser';
 
-// BigInt JSON serileştirme desteği (Prisma dueTime vb. alanlar için)
-// @ts-expect-error — BigInt.prototype'da toJSON yok, runtime polyfill
-BigInt.prototype.toJSON = function () {
-    return this.toString();
-};
-
 // Temel yapılar
 import { corsMiddleware } from './middleware/cors.middleware';
 import { morganMiddleware } from './middleware/morgan.middleware';

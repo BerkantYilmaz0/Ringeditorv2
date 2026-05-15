@@ -1,0 +1,2 @@
+ALTER TABLE "routes" ADD COLUMN "is_deleted" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "stops" ADD COLUMN "is_deleted" BOOLEAN NOT NULL DEFAULT false;

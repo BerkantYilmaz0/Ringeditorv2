@@ -15,8 +15,8 @@ export interface Template {
 export interface TemplateJob {
     id: number;
     templateId: number;
-    dueTime: string | number;
-    status: number;
+    dueTime: number;
+    status: string;
     ringTypeId: number;
     routeId: number;
     vehicleId?: string;
@@ -37,7 +37,9 @@ export const getTemplates = async () => {
 };
 
 export const getTemplateById = async (id: number) => {
-    return api.get<Template>(`/templates/${id}`);
+    const t = await api.get<Template>(`/templates/${id}`);
+    if (t.jobs) t.jobs = t.jobs.map(j => ({ ...j, dueTime: new Date(j.dueTime as unknown as string).getTime() }));
+    return t;
 };
 
 export const createTemplate = async (data: { name: string; description?: string }) => {
@@ -50,7 +52,8 @@ export const deleteTemplate = async (id: number) => {
 
 
 export const getTemplateJobs = async (templateId: number) => {
-    return api.get<TemplateJob[]>(`/template-jobs/${templateId}`);
+    const jobs = await api.get<TemplateJob[]>(`/template-jobs/${templateId}`);
+    return jobs.map(j => ({ ...j, dueTime: new Date(j.dueTime as unknown as string).getTime() }));
 };
 
 export const createTemplateJob = async (data: Partial<TemplateJob>) => {

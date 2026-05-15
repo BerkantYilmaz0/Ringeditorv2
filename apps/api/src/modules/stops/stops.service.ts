@@ -6,9 +6,8 @@ import { pageSkip } from '../../utils/paginate';
 export class StopsService {
     static async findAll(page: number = 1, limit: number = 10, search?: string) {
         const skip = pageSkip(page, limit);
-        const where = search
-            ? { name: { contains: search, mode: Prisma.QueryMode.insensitive } }
-            : {};
+        const where: Prisma.StopWhereInput = { isDeleted: false };
+        if (search) where.name = { contains: search, mode: Prisma.QueryMode.insensitive };
 
         const [stops, total] = await Promise.all([
             prisma.stop.findMany({
@@ -25,7 +24,7 @@ export class StopsService {
 
     static async findById(id: number) {
         const stop = await prisma.stop.findUnique({ where: { id } });
-        if (!stop) throw ApiError.notFound('Durak bulunamadı');
+        if (!stop || stop.isDeleted) throw ApiError.notFound('Durak bulunamadı');
         return stop;
     }
 
@@ -44,7 +43,7 @@ export class StopsService {
         if (routeStopCount > 0) {
             throw ApiError.conflict('Bu durağa bağlı güzergahlar var, önce onları silin');
         }
-        await prisma.stop.delete({ where: { id } });
+        await prisma.stop.update({ where: { id }, data: { isDeleted: true } });
         return { success: true };
     }
 }

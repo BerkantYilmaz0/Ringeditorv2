@@ -167,7 +167,7 @@ export default function TemplateSeferEditor({ open, onOpenChange, template, onUp
                 ringTypeId: parseInt(newRingTypeId),
                 routeId: parseInt(newRouteId),
                 vehicleId: newVehicleId || undefined,
-                status: 1
+                status: 'PENDING'
             });
             fetchData();
             onUpdate(); // Parent component uyarılır

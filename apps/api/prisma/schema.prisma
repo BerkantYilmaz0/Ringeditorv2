@@ -7,6 +7,20 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─── Sefer Durum & Tip Enum ───
+
+enum JobStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum JobType {
+  REGULAR
+  EXTRA
+}
+
 // ─── Kimlik & Yetkilendirme ───
 
 enum UserRole {
@@ -104,6 +118,7 @@ model Route {
   geometry    Json?
   color       String?
   description String?
+  isDeleted   Boolean  @default(false) @map("is_deleted")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
@@ -125,6 +140,7 @@ model Stop {
   lat         Float
   lng         Float
   description String?
+  isDeleted   Boolean  @default(false) @map("is_deleted")
   createdAt   DateTime @default(now()) @map("created_at")
 
   routes RouteStop[]
@@ -150,10 +166,10 @@ model RouteStop {
 // ─── Sefer (Job) ───
 
 model Job {
-  id        Int      @id @default(autoincrement())
-  dueTime   BigInt   @map("due_time")
-  status    Int      @default(1)
-  type      Int      @default(1)
+  id        Int       @id @default(autoincrement())
+  dueTime   DateTime  @map("due_time")
+  status    JobStatus @default(PENDING)
+  type      JobType   @default(REGULAR)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -188,9 +204,9 @@ model Template {
 // ─── Şablon Seferi ───
 
 model TemplateJob {
-  id        Int      @id @default(autoincrement())
-  dueTime   BigInt   @map("due_time")
-  status    Int      @default(1)
+  id        Int       @id @default(autoincrement())
+  dueTime   DateTime  @map("due_time")
+  status    JobStatus @default(PENDING)
   isDeleted Boolean  @default(false) @map("is_deleted")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

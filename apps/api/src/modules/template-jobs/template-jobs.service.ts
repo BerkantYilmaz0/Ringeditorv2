@@ -21,7 +21,7 @@ export class TemplateJobsService {
         const result = await prisma.templateJob.createMany({
             data: items.map((item) => ({
                 templateId,
-                dueTime: BigInt(item.dueTime),
+                dueTime: new Date(item.dueTime),
                 ringTypeId: item.ringTypeId,
                 routeId: item.routeId ?? null,
                 vehicleId: item.vehicleId ?? null,
@@ -37,7 +37,7 @@ export class TemplateJobsService {
         if (!existing || existing.isDeleted) throw ApiError.notFound('Şablon seferi bulunamadı');
 
         const updatePayload: Record<string, unknown> = {};
-        if (data.dueTime !== undefined) updatePayload.dueTime = BigInt(data.dueTime);
+        if (data.dueTime !== undefined) updatePayload.dueTime = new Date(data.dueTime);
         if (data.ringTypeId !== undefined) updatePayload.ringTypeId = data.ringTypeId;
         if (data.routeId !== undefined) updatePayload.routeId = data.routeId;
         if (data.vehicleId !== undefined) updatePayload.vehicleId = data.vehicleId;

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import {
     Dialog,
     DialogContent,
@@ -57,11 +58,11 @@ export default function BulkDialog({ open, onOpenChange, baseJob, existingJobs, 
     const handlePreview = () => {
         if (!baseJob) return;
         if (!endTime) {
-            alert('Lütfen bitiş saati giriniz.');
+            toast.error('Lütfen bitiş saati giriniz.');
             return;
         }
         if (frequency < 1 || frequency > 180) {
-            alert('Sıklık 1-180 dakika arasında olmalıdır.');
+            toast.error('Sıklık 1-180 dakika arasında olmalıdır.');
             return;
         }
 
@@ -90,7 +91,7 @@ export default function BulkDialog({ open, onOpenChange, baseJob, existingJobs, 
         while (currentVal.getTime() <= endValDate.getTime()) {
             iterCount++;
             if (iterCount > 100) {
-                alert('Maksimum 100 sefer sınırı aşıldı! Lütfen aralığı/sıklığı güncelleyiniz.');
+                toast.error('Maksimum 100 sefer sınırı aşıldı! Lütfen aralığı/sıklığı güncelleyiniz.');
                 break;
             }
 
@@ -123,7 +124,7 @@ export default function BulkDialog({ open, onOpenChange, baseJob, existingJobs, 
         if (!baseJob) return;
         const validChips = previewChips.filter(c => !c.isConflict);
         if (validChips.length === 0) {
-            alert('Eklenecek yeni sefer yok veya tüm saatler çakışıyor.');
+            toast.error('Eklenecek yeni sefer yok veya tüm saatler çakışıyor.');
             return;
         }
 
@@ -135,16 +136,15 @@ export default function BulkDialog({ open, onOpenChange, baseJob, existingJobs, 
                 ringTypeId: baseJob.ringTypeId,
                 routeId: baseJob.routeId,
                 vehicleId: baseJob.vehicleId,
-                status: 1
+                status: 'PENDING'
             }));
 
             await bulkCreateTemplateJobs(baseJob.templateId, items);
-            alert(`${items.length} sefer başarıyla eklendi.`);
+            toast.success(`${items.length} sefer başarıyla eklendi.`);
             onSaved();
             onOpenChange(false);
         } catch (error: unknown) {
-            console.error(error);
-            alert((error as Error).message || 'Toplu ekleme sırasında bir hata oluştu');
+            toast.error((error as Error).message || 'Toplu ekleme sırasında bir hata oluştu');
         } finally {
             setIsSaving(false);
         }

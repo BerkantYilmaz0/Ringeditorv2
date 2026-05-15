@@ -2,13 +2,19 @@ import { z } from 'zod';
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
+export const JobStatusEnum = z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']);
+export const JobTypeEnum = z.enum(['REGULAR', 'EXTRA']);
+
+export type JobStatus = z.infer<typeof JobStatusEnum>;
+export type JobType = z.infer<typeof JobTypeEnum>;
+
 export const JobCreateSchema = z.object({
     body: z.object({
         vehicleId: z.string().min(1, 'Araç ID boş olamaz'),
         dueTime: z.number().int().positive('Geçerli bir zaman damgası giriniz'),
         routeId: z.number().int().optional(),
-        status: z.number().int().optional(),
-        type: z.number().int().optional(),
+        status: JobStatusEnum.optional(),
+        type: JobTypeEnum.optional(),
     }),
 });
 
@@ -17,8 +23,8 @@ export const JobUpdateSchema = z.object({
         vehicleId: z.string().optional(),
         dueTime: z.number().int().positive().optional(),
         routeId: z.number().int().optional(),
-        status: z.number().int().optional(),
-        type: z.number().int().optional(),
+        status: JobStatusEnum.optional(),
+        type: JobTypeEnum.optional(),
     }),
 });
 

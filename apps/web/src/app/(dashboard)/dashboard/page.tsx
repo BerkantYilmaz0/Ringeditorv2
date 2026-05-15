@@ -147,9 +147,10 @@ export default function DashboardPage() {
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="text-right px-4">
-                                            {job.status === 1 && <Badge variant="secondary" className="font-medium rounded-full bg-amber-100 text-amber-700 hover:bg-amber-100 border-none px-3">Bekliyor</Badge>}
-                                            {job.status === 2 && <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-none font-medium rounded-full px-3">Devam Ediyor</Badge>}
-                                            {job.status === 3 && <Badge variant="outline" className="text-slate-500 border-slate-200 font-medium rounded-full px-3">Tamamlandı</Badge>}
+                                            {job.status === 'PENDING' && <Badge variant="secondary" className="font-medium rounded-full bg-amber-100 text-amber-700 hover:bg-amber-100 border-none px-3">Bekliyor</Badge>}
+                                            {job.status === 'IN_PROGRESS' && <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-none font-medium rounded-full px-3">Devam Ediyor</Badge>}
+                                            {job.status === 'COMPLETED' && <Badge variant="outline" className="text-slate-500 border-slate-200 font-medium rounded-full px-3">Tamamlandı</Badge>}
+                                            {job.status === 'CANCELLED' && <Badge variant="outline" className="text-red-500 border-red-200 font-medium rounded-full px-3">İptal</Badge>}
                                         </TableCell>
                                         <TableCell className="text-center px-4">
                                             <button className="text-slate-400 hover:text-primary transition-colors">

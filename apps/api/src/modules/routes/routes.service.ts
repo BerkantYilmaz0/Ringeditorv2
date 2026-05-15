@@ -6,14 +6,16 @@ import { pageSkip } from '../../utils/paginate';
 export class RoutesService {
     static async findAll(page: number = 1, limit: number = 10) {
         const skip = pageSkip(page, limit);
+        const where = { isDeleted: false };
         const [routes, total] = await Promise.all([
             prisma.route.findMany({
                 skip,
                 take: limit,
+                where,
                 include: { ringType: true, stops: { include: { stop: true }, orderBy: { sequence: 'asc' } } },
                 orderBy: { createdAt: 'desc' },
             }),
-            prisma.route.count(),
+            prisma.route.count({ where }),
         ]);
         return { routes, total };
     }
@@ -23,7 +25,7 @@ export class RoutesService {
             where: { id },
             include: { ringType: true, stops: { include: { stop: true }, orderBy: { sequence: 'asc' } } },
         });
-        if (!route) throw ApiError.notFound('Güzergah bulunamadı');
+        if (!route || route.isDeleted) throw ApiError.notFound('Güzergah bulunamadı');
         return route;
     }
 
@@ -83,7 +85,7 @@ export class RoutesService {
         if (jobCount > 0) {
             throw ApiError.conflict('Bu güzergaha bağlı seferler var');
         }
-        await prisma.route.delete({ where: { id } });
+        await prisma.route.update({ where: { id }, data: { isDeleted: true } });
         return { success: true };
     }
 }

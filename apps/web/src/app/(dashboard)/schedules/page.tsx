@@ -150,8 +150,8 @@ export default function SchedulesPage() {
                 routeId: parseInt(newJobRouteId),
                 vehicleId: newJobVehicleId,
                 dueTime: jobDate.getTime(),
-                status: 1,
-                type: 1
+                status: 'PENDING',
+                type: 'REGULAR'
             });
 
             setIsAddModalOpen(false);

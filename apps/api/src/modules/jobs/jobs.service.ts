@@ -1,6 +1,6 @@
 import { prisma } from '../../config/database';
 import { ApiError } from '../../utils/api-error';
-import { Prisma } from '@prisma/client';
+import { Prisma, JobStatus, JobType } from '@prisma/client';
 import { format } from 'date-fns';
 import { pageSkip } from '../../utils/paginate';
 
@@ -13,9 +13,11 @@ export class JobsService {
         if (filters?.routeId) where.routeId = filters.routeId;
 
         if (filters?.date) {
-            const dayStart = new Date(filters.date).setHours(0, 0, 0, 0);
-            const dayEnd = new Date(filters.date).setHours(23, 59, 59, 999);
-            where.dueTime = { gte: BigInt(dayStart), lte: BigInt(dayEnd) };
+            const dayStart = new Date(filters.date);
+            dayStart.setHours(0, 0, 0, 0);
+            const dayEnd = new Date(filters.date);
+            dayEnd.setHours(23, 59, 59, 999);
+            where.dueTime = { gte: dayStart, lte: dayEnd };
         }
 
         const [jobs, total] = await Promise.all([
@@ -41,9 +43,10 @@ export class JobsService {
         return job;
     }
 
-    static async create(data: { vehicleId: string; routeId?: number; dueTime: number; status?: number; type?: number }) {
+    static async create(data: { vehicleId: string; routeId?: number; dueTime: number; status?: JobStatus; type?: JobType }) {
+        const dueDate = new Date(data.dueTime);
         const conflict = await prisma.job.findUnique({
-            where: { vehicleId_dueTime: { vehicleId: data.vehicleId, dueTime: BigInt(data.dueTime) } },
+            where: { vehicleId_dueTime: { vehicleId: data.vehicleId, dueTime: dueDate } },
         });
         if (conflict) throw ApiError.conflict('Bu araç için belirtilen zamanda zaten bir sefer mevcut');
 
@@ -51,21 +54,21 @@ export class JobsService {
             data: {
                 vehicleId: data.vehicleId,
                 routeId: data.routeId,
-                dueTime: BigInt(data.dueTime),
-                status: data.status || 1,
-                type: data.type || 1,
+                dueTime: dueDate,
+                status: data.status ?? JobStatus.PENDING,
+                type: data.type ?? JobType.REGULAR,
             },
             include: { vehicle: true, route: true },
         });
     }
 
-    static async update(id: number, data: { vehicleId?: string; routeId?: number; dueTime?: number; status?: number; type?: number }) {
+    static async update(id: number, data: { vehicleId?: string; routeId?: number; dueTime?: number; status?: JobStatus; type?: JobType }) {
         await this.findById(id);
 
         const updateData: Prisma.JobUpdateInput = {};
         if (data.vehicleId !== undefined) updateData.vehicle = { connect: { id: data.vehicleId } };
         if (data.routeId !== undefined) updateData.route = { connect: { id: data.routeId } };
-        if (data.dueTime !== undefined) updateData.dueTime = BigInt(data.dueTime);
+        if (data.dueTime !== undefined) updateData.dueTime = new Date(data.dueTime);
         if (data.status !== undefined) updateData.status = data.status;
         if (data.type !== undefined) updateData.type = data.type;
 
@@ -84,7 +87,6 @@ export class JobsService {
         return { success: true, count: result.count };
     }
 
-    // Tek sorguda çakışma kontrolü (N+1 ortadan kalktı)
     static async checkConflicts(items: { vehicleId: string; dueTime: number }[]) {
         if (!items || items.length === 0) return { hasConflicts: false, conflicts: [] };
 
@@ -92,7 +94,7 @@ export class JobsService {
             where: {
                 OR: items.map(i => ({
                     vehicleId: i.vehicleId,
-                    dueTime: BigInt(i.dueTime),
+                    dueTime: new Date(i.dueTime),
                 })),
             },
             select: { id: true, vehicleId: true, dueTime: true },
@@ -100,14 +102,13 @@ export class JobsService {
 
         const conflicts = existing.map(e => ({
             vehicleId: e.vehicleId,
-            dueTime: Number(e.dueTime),
+            dueTime: e.dueTime.getTime(),
             existingJobId: e.id,
         }));
 
         return { hasConflicts: conflicts.length > 0, conflicts };
     }
 
-    // Şablondan sefer üretme — tek toplu sorgu + createMany
     static async generateFromTemplate(data: { templateId: number; startDate: string; endDate: string }) {
         const template = await prisma.template.findUnique({
             where: { id: data.templateId, isDeleted: false },
@@ -119,34 +120,33 @@ export class JobsService {
         const start = new Date(data.startDate);
         const end = new Date(data.endDate);
 
-        const candidates: { vehicleId: string; routeId: number | null; dueTime: bigint }[] = [];
+        const candidates: { vehicleId: string; routeId: number | null; dueTime: Date }[] = [];
 
         for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
             for (const tJob of template.jobs) {
                 if (!tJob.vehicleId) continue;
 
-                const tTime = new Date(Number(tJob.dueTime));
+                const tTime = tJob.dueTime;
                 const jobTime = new Date(d);
                 jobTime.setUTCHours(tTime.getUTCHours(), tTime.getUTCMinutes(), 0, 0);
 
                 candidates.push({
                     vehicleId: tJob.vehicleId,
                     routeId: tJob.routeId,
-                    dueTime: BigInt(jobTime.getTime()),
+                    dueTime: jobTime,
                 });
             }
         }
 
         if (candidates.length === 0) return { success: true, count: 0 };
 
-        // Tüm çakışmaları tek sorguda bul
         const existingJobs = await prisma.job.findMany({
             where: { OR: candidates.map(c => ({ vehicleId: c.vehicleId, dueTime: c.dueTime })) },
             select: { vehicleId: true, dueTime: true },
         });
 
-        const conflictSet = new Set(existingJobs.map(j => `${j.vehicleId}:${j.dueTime}`));
-        const toCreate = candidates.filter(c => !conflictSet.has(`${c.vehicleId}:${c.dueTime}`));
+        const conflictSet = new Set(existingJobs.map(j => `${j.vehicleId}:${j.dueTime.getTime()}`));
+        const toCreate = candidates.filter(c => !conflictSet.has(`${c.vehicleId}:${c.dueTime.getTime()}`));
 
         if (toCreate.length === 0) return { success: true, count: 0 };
 
@@ -155,8 +155,8 @@ export class JobsService {
                 vehicleId: c.vehicleId,
                 routeId: c.routeId,
                 dueTime: c.dueTime,
-                status: 1,
-                type: 1,
+                status: JobStatus.PENDING,
+                type: JobType.REGULAR,
             })),
             skipDuplicates: true,
         });
@@ -169,17 +169,14 @@ export class JobsService {
         const nextMonth = new Date(monthStart);
         nextMonth.setMonth(nextMonth.getMonth() + 1);
 
-        const startTs = monthStart.setHours(0, 0, 0, 0);
-        const endTs = new Date(nextMonth.getTime() - 1).getTime();
-
         const jobs = await prisma.job.findMany({
-            where: { dueTime: { gte: BigInt(startTs), lte: BigInt(endTs) } },
+            where: { dueTime: { gte: monthStart, lt: nextMonth } },
             select: { dueTime: true },
         });
 
         const stats: Record<string, number> = {};
         jobs.forEach(job => {
-            const dateStr = format(new Date(Number(job.dueTime)), 'yyyy-MM-dd');
+            const dateStr = format(job.dueTime, 'yyyy-MM-dd');
             stats[dateStr] = (stats[dateStr] || 0) + 1;
         });
 
