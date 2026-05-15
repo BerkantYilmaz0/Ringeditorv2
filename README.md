@@ -97,5 +97,27 @@ pnpm db:seed
 
 ---
 
+### Sistem Genel Akışı
+
+Sistem dört ana katmandan oluşur; her katman bir sonrakinin temelini oluşturur.
+
+| Katman | Bileşen | Açıklama |
+|--------|---------|----------|
+| **Altyapı** | Duraklar → Hatlar | Harita üzerindeki GPS noktaları sıralanarak güzergah oluşturulur |
+| **Araç Yönetimi** | Ring Tipleri → Araçlar | Araç kategorileri tanımlanır, plakalar sisteme eklenir |
+| **Planlama** | Şablonlar → Şablon Seferleri | Tekrar eden operasyon taslakları hazırlanır |
+| **Operasyon** | Sefer Planlama → Dashboard | Şablonlar takvime dökülür, canlı operasyon izlenir |
+
+**Önerilen kullanım sırası:**
+
+```
+Durak Ekle → Hat Oluştur → Ring Tiplerini Belirle → Araçları Tanıt
+→ Şablon Oluştur → Seferleri Ekle → Takvime At → Dashboard'dan İzle
+```
+
+**Kritik bağımlılık zinciri:** Durak silinemez → hatta bağlıysa. Hat silinemez → şablonda kullanılıyorsa. Şablon silinemez → aktif sefer varsa.
+
+---
+
 ### Lisans
 Bu proje MIT Lisansı altında lisanslanmıştır. Tamamen öğrenme ve gelişim odaklı bir projedir.
