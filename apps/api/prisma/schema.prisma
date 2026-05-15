@@ -129,6 +129,7 @@ model Stop {
 
   routes RouteStop[]
 
+  @@index([name])
   @@map("stops")
 }
 
@@ -142,6 +143,7 @@ model RouteStop {
   sequence Int
 
   @@id([routeId, stopId])
+  @@index([routeId])
   @@map("route_stops")
 }
 
@@ -162,6 +164,9 @@ model Job {
   routeId Int?   @map("route_id")
 
   @@unique([vehicleId, dueTime])
+  @@index([dueTime])
+  @@index([vehicleId])
+  @@index([routeId])
   @@map("jobs")
 }
 
@@ -202,5 +207,7 @@ model TemplateJob {
   vehicle   Vehicle? @relation(fields: [vehicleId], references: [id])
   vehicleId String?  @map("vehicle_id")
 
+  @@index([templateId])
+  @@index([vehicleId])
   @@map("template_jobs")
 }

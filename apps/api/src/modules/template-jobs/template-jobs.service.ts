@@ -16,20 +16,19 @@ export class TemplateJobsService {
         const template = await prisma.template.findUnique({ where: { id: templateId } });
         if (!template || template.isDeleted) throw ApiError.notFound('Şablon bulunamadı');
 
-        const created = await prisma.$transaction(
-            items.map((item) =>
-                prisma.templateJob.create({
-                    data: {
-                        templateId,
-                        dueTime: BigInt(item.dueTime),
-                        ringTypeId: item.ringTypeId,
-                        routeId: item.routeId,
-                        vehicleId: item.vehicleId,
-                    },
-                })
-            )
-        );
-        return created;
+        if (items.length === 0) return { count: 0 };
+
+        const result = await prisma.templateJob.createMany({
+            data: items.map((item) => ({
+                templateId,
+                dueTime: BigInt(item.dueTime),
+                ringTypeId: item.ringTypeId,
+                routeId: item.routeId ?? null,
+                vehicleId: item.vehicleId ?? null,
+            })),
+        });
+
+        return { count: result.count };
     }
 
     // tekil güncelleme

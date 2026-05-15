@@ -14,23 +14,26 @@ export class RouteStopsService {
 
     // güzergaha durak ekle
     static async addStop(routeId: number, stopId: number, sequence: number) {
-        // güzergah ve durak varlığını kontrol et
-        const route = await prisma.route.findUnique({ where: { id: routeId } });
+        // route ve stop varlığını paralel kontrol et
+        const [route, stop] = await Promise.all([
+            prisma.route.findUnique({ where: { id: routeId } }),
+            prisma.stop.findUnique({ where: { id: stopId } }),
+        ]);
         if (!route) throw ApiError.notFound('Güzergah bulunamadı');
-
-        const stop = await prisma.stop.findUnique({ where: { id: stopId } });
         if (!stop) throw ApiError.notFound('Durak bulunamadı');
 
-        // zaten ekli mi kontrol
-        const existing = await prisma.routeStop.findUnique({
-            where: { routeId_stopId: { routeId, stopId } },
-        });
-        if (existing) throw ApiError.conflict('Bu durak zaten güzergaha ekli');
-
-        return prisma.routeStop.create({
-            data: { routeId, stopId, sequence },
-            include: { stop: true },
-        });
+        try {
+            return await prisma.routeStop.create({
+                data: { routeId, stopId, sequence },
+                include: { stop: true },
+            });
+        } catch (err: unknown) {
+            // Prisma unique constraint ihlali — durak zaten ekli
+            if (err && typeof err === 'object' && 'code' in err && (err as { code: string }).code === 'P2002') {
+                throw ApiError.conflict('Bu durak zaten güzergaha ekli');
+            }
+            throw err;
+        }
     }
 
     // güzergahtan durak kaldır
@@ -48,7 +51,7 @@ export class RouteStopsService {
 
     // güzergahtaki durakları yeniden sırala
     static async reorder(routeId: number, items: { stopId: number; sequence: number }[]) {
-        await prisma.$transaction(
+        await Promise.all(
             items.map((item) =>
                 prisma.routeStop.update({
                     where: { routeId_stopId: { routeId, stopId: item.stopId } },
