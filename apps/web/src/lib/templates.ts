@@ -37,9 +37,7 @@ export const getTemplates = async () => {
 };
 
 export const getTemplateById = async (id: number) => {
-    const t = await api.get<Template>(`/templates/${id}`);
-    if (t.jobs) t.jobs = t.jobs.map(j => ({ ...j, dueTime: new Date(j.dueTime as unknown as string).getTime() }));
-    return t;
+    return api.get<Template>(`/templates/${id}`);
 };
 
 export const createTemplate = async (data: { name: string; description?: string }) => {
