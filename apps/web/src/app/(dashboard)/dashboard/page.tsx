@@ -1,11 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { toast } from 'sonner';
 import { api } from '@/lib/api-client';
+import { updateJob } from '@/lib/jobs';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
     Table,
@@ -55,6 +58,7 @@ interface DashboardStats {
 
 function computeStatus(job: UpcomingJob): 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' {
     if (job.status === 'CANCELLED') return 'CANCELLED';
+    if (job.status === 'COMPLETED') return 'COMPLETED';
     const now = Date.now();
     const due = new Date(job.dueTime).getTime();
     if (due < now - 30 * 60 * 1000) return 'COMPLETED';
@@ -69,10 +73,26 @@ function StatusBadge({ status }: { status: ReturnType<typeof computeStatus> }) {
     return <Badge variant="secondary" className="font-medium rounded-full bg-amber-100 text-amber-700 hover:bg-amber-100 border-none px-3">Bekliyor</Badge>;
 }
 
-function JobDetailModal({ job, open, onClose }: { job: UpcomingJob | null; open: boolean; onClose: () => void }) {
+function JobDetailModal({ job, open, onClose, onCompleted }: { job: UpcomingJob | null; open: boolean; onClose: () => void; onCompleted: (id: number) => void }) {
+    const [isCompleting, setIsCompleting] = useState(false);
+
     if (!job) return null;
     const status = computeStatus(job);
     const dueMs = new Date(job.dueTime).getTime();
+
+    const handleComplete = async () => {
+        setIsCompleting(true);
+        try {
+            await updateJob(job.id, { status: 'COMPLETED' });
+            toast.success('Sefer tamamlandı olarak işaretlendi.');
+            onCompleted(job.id);
+            onClose();
+        } catch {
+            toast.error('Durum güncellenirken bir hata oluştu.');
+        } finally {
+            setIsCompleting(false);
+        }
+    };
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
@@ -151,6 +171,18 @@ function JobDetailModal({ job, open, onClose }: { job: UpcomingJob | null; open:
                             </div>
                         )}
                     </div>
+
+                    {(status === 'PENDING' || status === 'IN_PROGRESS') && (
+                        <div className="mt-5 pt-4 border-t border-slate-100">
+                            <Button
+                                className="w-full bg-emerald-600 hover:bg-emerald-700 font-semibold"
+                                onClick={handleComplete}
+                                disabled={isCompleting}
+                            >
+                                {isCompleting ? 'İşleniyor...' : 'Tamamlandı İşaretle'}
+                            </Button>
+                        </div>
+                    )}
                 </div>
             </DialogContent>
         </Dialog>
@@ -159,6 +191,7 @@ function JobDetailModal({ job, open, onClose }: { job: UpcomingJob | null; open:
 
 export default function DashboardPage() {
     const [selectedJob, setSelectedJob] = useState<UpcomingJob | null>(null);
+    const queryClient = useQueryClient();
 
     const { data: stats, isLoading } = useQuery({
         queryKey: ['dashboard-stats'],
@@ -281,6 +314,7 @@ export default function DashboardPage() {
                 job={selectedJob}
                 open={!!selectedJob}
                 onClose={() => setSelectedJob(null)}
+                onCompleted={() => queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })}
             />
         </div>
     );
