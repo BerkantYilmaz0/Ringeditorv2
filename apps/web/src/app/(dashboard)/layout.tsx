@@ -33,31 +33,25 @@ export default function DashboardLayout({
 
     if (loading) {
         return (
-            <div className="flex h-screen items-center justify-center bg-background">
-                <div className="flex flex-col items-center gap-3">
-                    <div className="h-8 w-8 border-2 border-acid border-t-transparent animate-spin" />
-                    <span className="text-xs font-mono text-muted-foreground uppercase tracking-widest">
-                        Yükleniyor...
-                    </span>
+            <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', background: '#f6f7f9', fontFamily: '"Manrope", sans-serif' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 28, height: 28, borderRadius: '50%', border: '2.5px solid #0d9488', borderTopColor: 'transparent', animation: 'rp-spin 0.8s linear infinite' }} />
+                    <span style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Yükleniyor…</span>
+                    <style>{`@keyframes rp-spin { to { transform: rotate(360deg); } }`}</style>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="flex h-screen overflow-hidden bg-background">
-            {/* masaüstü sidebar */}
-            <div className="hidden lg:flex">
-                <Sidebar />
-            </div>
-
-            {/* ana içerik alanı */}
-            <div className="flex flex-1 flex-col overflow-hidden">
+        <div className="rp">
+            <Sidebar />
+            <main className="rp-main">
                 <Topbar username={username} />
-                <main className="flex-1 overflow-y-auto p-6">
+                <div className="rp-scroll">
                     {children}
-                </main>
-            </div>
+                </div>
+            </main>
         </div>
     );
 }

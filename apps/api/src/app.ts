@@ -7,6 +7,7 @@ import cookieParser from 'cookie-parser';
 import { corsMiddleware } from './middleware/cors.middleware';
 import { morganMiddleware } from './middleware/morgan.middleware';
 import { errorHandler } from './middleware/error.middleware';
+import { activityLogger } from './middleware/activity.middleware';
 
 // Routes
 import apiRoutes from './routes';
@@ -35,7 +36,10 @@ app.use(hpp());
 // 3. Rate Limitleri
 app.use(rateLimiter);
 
-// 4. API Route'ları
+// 4. Aktivite Logu (route'lardan önce, authenticate sonrası çalışır)
+app.use(activityLogger);
+
+// 5. API Route'ları
 app.use('/api/v1', apiRoutes);
 
 // 5. Tanımsız Route Yönetimi

@@ -12,6 +12,7 @@ declare global {
             user?: {
                 id: string;
                 username: string;
+                role: string;
             };
             token?: string;
             tokenExp?: number;
@@ -39,6 +40,7 @@ export const authenticate = async (req: Request, _res: Response, next: NextFunct
             req.user = {
                 id: payload.sub as string,
                 username: payload.username as string,
+                role: (payload.role as string) ?? 'VIEWER',
             };
             req.token = token;
             req.tokenExp = payload.exp as number;

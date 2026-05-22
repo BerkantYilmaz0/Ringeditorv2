@@ -79,13 +79,30 @@ export class RoutesService {
         });
     }
 
-    static async delete(id: number) {
+    static async delete(id: number, force = false) {
         await this.findById(id);
-        const jobCount = await prisma.job.count({ where: { routeId: id } });
-        if (jobCount > 0) {
-            throw ApiError.conflict('Bu güzergaha bağlı seferler var');
+        const [jobCount, templateJobCount] = await Promise.all([
+            prisma.job.count({ where: { routeId: id } }),
+            prisma.templateJob.count({ where: { routeId: id } }),
+        ]);
+        if ((jobCount > 0 || templateJobCount > 0) && !force) {
+            throw ApiError.conflict(
+                JSON.stringify({ jobCount, templateJobCount, message: 'Bu güzergaha bağlı kayıtlar var' })
+            );
+        }
+        if (force) {
+            await prisma.job.deleteMany({ where: { routeId: id } });
+            await prisma.templateJob.deleteMany({ where: { routeId: id } });
         }
         await prisma.route.update({ where: { id }, data: { isDeleted: true } });
         return { success: true };
+    }
+
+    static async deleteStats(id: number) {
+        const [jobCount, templateJobCount] = await Promise.all([
+            prisma.job.count({ where: { routeId: id } }),
+            prisma.templateJob.count({ where: { routeId: id } }),
+        ]);
+        return { jobCount, templateJobCount };
     }
 }

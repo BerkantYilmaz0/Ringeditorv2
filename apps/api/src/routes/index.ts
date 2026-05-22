@@ -11,6 +11,9 @@ import templateJobRoutes from '../modules/template-jobs/template-jobs.routes';
 import jobRoutes from '../modules/jobs/jobs.routes';
 import driverRoutes from '../modules/drivers/drivers.routes';
 import dashboardRoutes from '../modules/dashboard/dashboard.routes';
+import reportsRoutes from '../modules/reports/reports.routes';
+import notificationsRoutes from '../modules/notifications/notifications.routes';
+import activityRoutes from '../modules/activity/activity.routes';
 
 const router: Router = Router();
 
@@ -27,6 +30,9 @@ router.use('/templates', templateRoutes);
 router.use('/template-jobs', templateJobRoutes);
 router.use('/jobs', jobRoutes);
 router.use('/dashboard', dashboardRoutes);
+router.use('/reports', reportsRoutes);
+router.use('/notifications', notificationsRoutes);
+router.use('/activity', activityRoutes);
 
 router.get('/health', (_req, res) => {
     res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });

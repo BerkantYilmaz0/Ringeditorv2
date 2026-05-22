@@ -12,5 +12,7 @@ router.post('/login', loginRateLimiter, validateRequest(LoginSchema), AuthContro
 router.post('/refresh', refreshRateLimiter, AuthController.refresh);
 router.post('/logout', authenticate, AuthController.logout);
 router.get('/me', authenticate, AuthController.getMe);
+router.patch('/change-password', authenticate, AuthController.changePassword);
+router.patch('/profile', authenticate, AuthController.updateProfile);
 
 export default router;

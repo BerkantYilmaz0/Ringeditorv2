@@ -54,6 +54,14 @@ export class JobsController {
         } catch (error) { next(error); }
     }
 
+    static async bulkUpdateStatus(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { ids, status } = req.body as { ids: string[]; status: string };
+            const result = await JobsService.bulkUpdateStatus(ids, status);
+            res.json(ResponseFormatter.success(result));
+        } catch (error) { next(error); }
+    }
+
     static async checkConflicts(req: Request, res: Response, next: NextFunction) {
         try {
             const result = await JobsService.checkConflicts(req.body.items);

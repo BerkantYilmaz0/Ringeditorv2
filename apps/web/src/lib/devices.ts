@@ -11,12 +11,19 @@ export interface Vehicle {
     simNumber: string | null;
     odometerKm: number | null;
     engineHours: number | null;
+    capacity: number | null;
+    lastServiceDate: string | null;
+    nextServiceDate: string | null;
+    vehicleStatus: 'AVAILABLE' | 'MAINTENANCE';
     isActive: boolean;
     description: string | null;
     driverId: string | null;
     driver?: { id: string; name: string };
     createdAt: string;
     updatedAt: string;
+    // computed by backend
+    todayTripCount?: number;
+    currentStatus?: 'Görevde' | 'Boşta' | 'Bakımda';
 }
 
 export interface PaginatedVehicles {
@@ -57,18 +64,15 @@ export async function getVehicles(page: number = 1, limit: number = 10, search?:
 }
 
 export async function getVehicle(id: string): Promise<Vehicle> {
-    const response = await api.get<{ vehicle: Vehicle }>(`/devices/${id}`);
-    return response.vehicle;
+    return api.get<Vehicle>(`/devices/${id}`);
 }
 
 export async function createVehicle(data: Partial<Vehicle>): Promise<Vehicle> {
-    const response = await api.post<{ vehicle: Vehicle }>('/devices', data as Record<string, unknown>);
-    return response.vehicle;
+    return api.post<Vehicle>('/devices', data as Record<string, unknown>);
 }
 
 export async function updateVehicle(id: string, data: Partial<Vehicle>): Promise<Vehicle> {
-    const response = await api.put<{ vehicle: Vehicle }>(`/devices/${id}`, data as Record<string, unknown>);
-    return response.vehicle;
+    return api.put<Vehicle>(`/devices/${id}`, data as Record<string, unknown>);
 }
 
 export async function deleteVehicle(id: string): Promise<{ success: boolean }> {

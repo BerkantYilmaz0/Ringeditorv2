@@ -44,6 +44,9 @@ const vehicleSchema = z.object({
     simNumber: z.string().nullable().optional(),
     driverId: z.string().nullable().optional(),
     isActive: z.boolean(),
+    capacity: z.coerce.number().int().positive().nullable().optional(),
+    lastServiceDate: z.string().nullable().optional(),
+    nextServiceDate: z.string().nullable().optional(),
 });
 
 type VehicleFormValues = z.infer<typeof vehicleSchema>;
@@ -94,6 +97,9 @@ export default function VehicleDialog({
                     simNumber: vehicle.simNumber || '',
                     driverId: vehicle.driverId || 'none',
                     isActive: vehicle.isActive,
+                    capacity: vehicle.capacity ?? undefined,
+                    lastServiceDate: vehicle.lastServiceDate ? vehicle.lastServiceDate.slice(0, 10) : '',
+                    nextServiceDate: vehicle.nextServiceDate ? vehicle.nextServiceDate.slice(0, 10) : '',
                 });
             } else {
                 form.reset({
@@ -106,6 +112,9 @@ export default function VehicleDialog({
                     simNumber: '',
                     driverId: 'none',
                     isActive: true,
+                    capacity: undefined,
+                    lastServiceDate: '',
+                    nextServiceDate: '',
                 });
             }
         }
@@ -114,8 +123,8 @@ export default function VehicleDialog({
     const fetchDrivers = async () => {
         try {
             setLoadingDrivers(true);
-            const data = await getDrivers();
-            setDrivers(data);
+            const res = await getDrivers({ limit: 200 });
+            setDrivers(res.data);
         } catch (error) {
             console.error('Şoförler yüklenemedi:', error);
         } finally {
@@ -125,11 +134,10 @@ export default function VehicleDialog({
 
     const onSubmit = async (values: VehicleFormValues) => {
         try {
-            // driverId "none" ise null olarak gönder
             const payload = { ...values };
-            if (payload.driverId === 'none') {
-                payload.driverId = null;
-            }
+            if (payload.driverId === 'none') payload.driverId = null;
+            if (!payload.lastServiceDate) payload.lastServiceDate = null;
+            if (!payload.nextServiceDate) payload.nextServiceDate = null;
 
             if (isEditing && vehicle) {
                 await updateVehicle(vehicle.id, payload as Partial<Vehicle>);
@@ -283,6 +291,70 @@ export default function VehicleDialog({
                                                         onCheckedChange={field.onChange}
                                                     />
                                                 </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Servis & Kapasite */}
+                            <div className="space-y-4 pt-4 border-t border-slate-100">
+                                <h3 className="text-sm font-semibold text-slate-800 uppercase tracking-wider mb-2">Servis & Kapasite</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="capacity"
+                                        render={({ field }) => (
+                                            <FormItem className="col-span-2 sm:col-span-1">
+                                                <FormLabel className="text-slate-700">Kapasite (Koltuk)</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        type="number"
+                                                        placeholder="28"
+                                                        {...field}
+                                                        value={field.value ?? ''}
+                                                        onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value, 10) : null)}
+                                                        className="border-slate-200"
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <div className="col-span-2 sm:col-span-1" /> {/* spacer */}
+                                    <FormField
+                                        control={form.control}
+                                        name="lastServiceDate"
+                                        render={({ field }) => (
+                                            <FormItem className="col-span-2 sm:col-span-1">
+                                                <FormLabel className="text-slate-700">Son Servis Tarihi</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        type="date"
+                                                        {...field}
+                                                        value={field.value || ''}
+                                                        className="border-slate-200"
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="nextServiceDate"
+                                        render={({ field }) => (
+                                            <FormItem className="col-span-2 sm:col-span-1">
+                                                <FormLabel className="text-slate-700">Sonraki Bakım Tarihi</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        type="date"
+                                                        {...field}
+                                                        value={field.value || ''}
+                                                        className="border-slate-200"
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
                                             </FormItem>
                                         )}
                                     />

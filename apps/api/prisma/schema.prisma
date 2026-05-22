@@ -9,6 +9,11 @@ datasource db {
 
 // ─── Sefer Durum & Tip Enum ───
 
+enum VehicleStatus {
+  AVAILABLE
+  MAINTENANCE
+}
+
 enum JobStatus {
   PENDING
   IN_PROGRESS
@@ -40,8 +45,12 @@ model User {
   role         UserRole  @default(VIEWER)
   isActive     Boolean   @default(true) @map("is_active")
   lastLoginAt  DateTime? @map("last_login_at")
+  notificationSound   Boolean @default(true)  @map("notification_sound")
+  notificationBrowser Boolean @default(true)  @map("notification_browser")
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  activityLogs ActivityLog[]
 
   @@map("users")
 }
@@ -78,6 +87,10 @@ model Vehicle {
   simNumber   String? @map("sim_number")
   odometerKm  Float?  @map("odometer_km")
   engineHours Float?  @map("engine_hours")
+  capacity        Int?           @map("capacity")
+  lastServiceDate DateTime?      @map("last_service_date") @db.Date
+  nextServiceDate DateTime?      @map("next_service_date") @db.Date
+  vehicleStatus   VehicleStatus  @default(AVAILABLE) @map("vehicle_status")
   isActive    Boolean @default(true) @map("is_active")
   lastLat     Float?  @map("last_lat")
   lastLng     Float?  @map("last_lng")
@@ -166,10 +179,11 @@ model RouteStop {
 // ─── Sefer (Job) ───
 
 model Job {
-  id        Int       @id @default(autoincrement())
-  dueTime   DateTime  @map("due_time")
-  status    JobStatus @default(PENDING)
-  type      JobType   @default(REGULAR)
+  id             Int       @id @default(autoincrement())
+  dueTime        DateTime  @map("due_time")
+  status         JobStatus @default(PENDING)
+  type           JobType   @default(REGULAR)
+  passengerCount Int?      @map("passenger_count")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -199,6 +213,23 @@ model Template {
   jobs TemplateJob[]
 
   @@map("templates")
+}
+
+// ─── Aktivite Logu ───
+
+model ActivityLog {
+  id        Int      @id @default(autoincrement())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id])
+  action    String
+  entity    String
+  entityId  String?  @map("entity_id")
+  meta      Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("activity_logs")
 }
 
 // ─── Şablon Seferi ───

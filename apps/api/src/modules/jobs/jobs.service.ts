@@ -87,6 +87,16 @@ export class JobsService {
         return { success: true, count: result.count };
     }
 
+    static async bulkUpdateStatus(ids: string[], status: string) {
+        if (!ids || ids.length === 0) return { success: true, count: 0 };
+        const numIds = ids.map(Number);
+        const result = await prisma.job.updateMany({
+            where: { id: { in: numIds } },
+            data: { status: status as any },
+        });
+        return { success: true, count: result.count };
+    }
+
     static async checkConflicts(items: { vehicleId: string; dueTime: number }[]) {
         if (!items || items.length === 0) return { hasConflicts: false, conflicts: [] };
 

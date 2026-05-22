@@ -7,7 +7,7 @@ import { ApiError } from '../../utils/api-error';
 import { LoginInput } from '@ring-planner/shared';
 
 export class AuthService {
-    private static async generateTokens(payload: { sub: string; username: string }) {
+    private static async generateTokens(payload: { sub: string; username: string; role: string }) {
         const secret = new TextEncoder().encode(env.JWT_SECRET);
         const refreshSecret = new TextEncoder().encode(env.JWT_REFRESH_SECRET);
 
@@ -35,7 +35,7 @@ export class AuthService {
 
         await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
 
-        const tokens = await this.generateTokens({ sub: user.id, username: user.username });
+        const tokens = await this.generateTokens({ sub: user.id, username: user.username, role: user.role });
 
         return {
             ...tokens,
@@ -44,6 +44,7 @@ export class AuthService {
                 username: user.username,
                 fullName: user.fullName,
                 email: user.email,
+                role: user.role,
                 createdAt: user.createdAt.toISOString(),
                 updatedAt: user.updatedAt.toISOString(),
             },
@@ -84,7 +85,7 @@ export class AuthService {
         const user = await prisma.user.findUnique({ where: { id: payload.sub as string } });
         if (!user) throw ApiError.unauthorized('Geçersiz oturum');
 
-        const tokens = await this.generateTokens({ sub: user.id, username: user.username });
+        const tokens = await this.generateTokens({ sub: user.id, username: user.username, role: user.role });
 
         // Kullanılan refresh token'ı blacklist'e al (token reuse saldırısını önler)
         if (payload.exp) {
@@ -95,5 +96,25 @@ export class AuthService {
         }
 
         return tokens;
+    }
+
+    static async changePassword(userId: string, currentPassword: string, newPassword: string) {
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) throw new Error('Kullanıcı bulunamadı');
+
+        const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+        if (!valid) throw Object.assign(new Error('Mevcut şifre yanlış'), { statusCode: 400 });
+
+        const hashed = await bcrypt.hash(newPassword, 10);
+        await prisma.user.update({ where: { id: userId }, data: { passwordHash: hashed } });
+        return { success: true };
+    }
+
+    static async updateProfile(userId: string, data: { username?: string; notificationSound?: boolean; notificationBrowser?: boolean }) {
+        return prisma.user.update({
+            where: { id: userId },
+            data,
+            select: { id: true, username: true, role: true, isActive: true, notificationSound: true, notificationBrowser: true },
+        });
     }
 }

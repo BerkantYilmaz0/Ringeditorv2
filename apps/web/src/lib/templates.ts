@@ -44,6 +44,10 @@ export const createTemplate = async (data: { name: string; description?: string 
     return api.post<Template>('/templates', data);
 };
 
+export const updateTemplate = async (id: number, data: { name?: string; description?: string }) => {
+    return api.put<Template>(`/templates/${id}`, data);
+};
+
 export const deleteTemplate = async (id: number) => {
     return api.delete<{ success: boolean }>(`/templates/${id}`);
 };

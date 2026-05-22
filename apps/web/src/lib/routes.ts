@@ -73,8 +73,12 @@ export async function updateRoute(id: number, data: Partial<Route> & { stops?: {
     return api.put<Route>(`/routes/${id}`, data as Record<string, unknown>);
 }
 
-export async function deleteRoute(id: number): Promise<{ success: boolean }> {
-    return api.delete<{ success: boolean }>(`/routes/${id}`);
+export async function deleteRoute(id: number, force = false): Promise<{ success: boolean }> {
+    return api.delete<{ success: boolean }>(`/routes/${id}${force ? '?force=true' : ''}`);
+}
+
+export async function getRouteDeleteStats(id: number): Promise<{ jobCount: number; templateJobCount: number }> {
+    return api.get<{ jobCount: number; templateJobCount: number }>(`/routes/${id}/delete-stats`);
 }
 
 interface OsrmResponse {

@@ -7,7 +7,8 @@ const getApiBaseUrl = () => {
     url = url.replace(/['"]+/g, '').trim();
 
     // Protokol kontrolü (Mutlaka bir protokol olmalı, yoksa relative sayılır ve domaine eklenir)
-    if (url && !url.startsWith('http')) {
+    // Eğer relative bir yol ise (örn: /api/v1) protokole gerek yoktur, tarayıcı otomatik tamamlar.
+    if (url && !url.startsWith('/') && !url.startsWith('http')) {
         url = `https://${url}`;
     }
 
@@ -117,6 +118,12 @@ export const api = {
     put: <T>(endpoint: string, body: Record<string, unknown> | unknown[]) =>
         apiFetch<T>(endpoint, {
             method: 'PUT',
+            body: JSON.stringify(body),
+        }),
+
+    patch: <T>(endpoint: string, body: Record<string, unknown> | unknown[]) =>
+        apiFetch<T>(endpoint, {
+            method: 'PATCH',
             body: JSON.stringify(body),
         }),
 

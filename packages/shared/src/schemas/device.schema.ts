@@ -12,6 +12,10 @@ export const VehicleCreateSchema = z.object({
         description: z.string().optional(),
         driverId: z.string().optional(),
         isActive: z.boolean().optional(),
+        capacity: z.number().int().positive().optional().nullable(),
+        lastServiceDate: z.string().optional().nullable(),
+        nextServiceDate: z.string().optional().nullable(),
+        vehicleStatus: z.enum(['AVAILABLE', 'MAINTENANCE']).optional(),
     }),
 });
 
@@ -27,6 +31,10 @@ export const VehicleUpdateSchema = z.object({
         description: z.string().optional(),
         driverId: z.string().optional(),
         isActive: z.boolean().optional(),
+        capacity: z.number().int().positive().optional().nullable(),
+        lastServiceDate: z.string().optional().nullable(),
+        nextServiceDate: z.string().optional().nullable(),
+        vehicleStatus: z.enum(['AVAILABLE', 'MAINTENANCE']).optional(),
     }),
 });
 

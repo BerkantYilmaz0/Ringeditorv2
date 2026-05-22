@@ -2,55 +2,65 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import {
-    LayoutDashboard,
-    Bus,
-    MapPin,
-    Route,
-    CalendarDays,
-    FileStack,
-    Palette,
-    ChevronLeft,
-    ChevronRight,
-} from 'lucide-react';
 import { useState } from 'react';
-import { Separator } from '@/components/ui/separator';
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from '@/components/ui/tooltip';
 
-// navigasyon grupları
+function I(path: string) {
+    return function Icon() {
+        return (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d={path} stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+        );
+    };
+}
+
+const IconDashboard = I('M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z');
+const IconCalendar  = I('M4 7h16M8 3v4M16 3v4M5 7h14v13H5z');
+const IconCopy      = I('M9 4h9v13H9zM6 7v13h10');
+const IconBus       = I('M4 7a2 2 0 012-2h12a2 2 0 012 2v9H4zM4 16v2h3v-2M17 16v2h3v-2M4 11h16');
+const IconRing      = I('M12 4a8 8 0 108 8');
+const IconRoute     = I('M6 6a2 2 0 100 4 2 2 0 000-4zM18 14a2 2 0 100 4 2 2 0 000-4zM8 8h6a4 4 0 014 4v0');
+const IconPin       = I('M12 21s-7-6.2-7-11a7 7 0 1114 0c0 4.8-7 11-7 11zM12 12a2 2 0 100-4 2 2 0 000 4z');
+const IconPerson    = I('M12 4a4 4 0 100 8 4 4 0 000-8zM4 20c0-4 3.6-7 8-7s8 3 8 7');
+const IconUsers     = I('M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75');
+const IconChart     = I('M3 3v18h18M7 16l4-4 4 4 4-6');
+const IconActivity  = I('M22 12h-4l-3 9L9 3l-3 9H2');
+
 const navGroups = [
     {
-        title: 'GENEL',
-        items: [
-            { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        ]
+        label: 'Genel',
+        items: [{ href: '/dashboard', name: 'Dashboard', icon: IconDashboard }],
     },
     {
-        title: 'OPERASYON',
+        label: 'Operasyon',
         items: [
-            { href: '/schedules', label: 'Sefer Planlama', icon: CalendarDays },
-            { href: '/templates', label: 'Şablonlar', icon: FileStack },
-        ]
+            { href: '/schedules', name: 'Sefer Planlama', icon: IconCalendar },
+            { href: '/templates', name: 'Şablonlar', icon: IconCopy },
+        ],
     },
     {
-        title: 'ARAÇ YÖNETİMİ',
+        label: 'Araç Yönetimi',
         items: [
-            { href: '/devices', label: 'Araçlar', icon: Bus },
-            { href: '/ring-types', label: 'Ring Tipleri', icon: Palette },
-        ]
+            { href: '/devices', name: 'Araçlar', icon: IconBus },
+            { href: '/drivers', name: 'Sürücüler', icon: IconPerson },
+            { href: '/ring-types', name: 'Ring Tipleri', icon: IconRing },
+        ],
     },
     {
-        title: 'ALTYAPI',
+        label: 'Altyapı',
         items: [
-            { href: '/routes', label: 'Hat Yönetimi', icon: Route },
-            { href: '/stops', label: 'Durak Yönetimi', icon: MapPin },
-        ]
-    }
+            { href: '/routes', name: 'Hat Yönetimi', icon: IconRoute },
+            { href: '/stops', name: 'Durak Yönetimi', icon: IconPin },
+        ],
+    },
+    {
+        label: 'Raporlar & Yönetim',
+        items: [
+            { href: '/reports', name: 'Raporlar', icon: IconChart },
+            { href: '/users', name: 'Kullanıcılar', icon: IconUsers },
+            { href: '/activity', name: 'Aktivite Geçmişi', icon: IconActivity },
+        ],
+    },
 ];
 
 export default function Sidebar() {
@@ -58,84 +68,57 @@ export default function Sidebar() {
     const [collapsed, setCollapsed] = useState(false);
 
     return (
-        <TooltipProvider delayDuration={0}>
-            <aside className={`relative flex flex-col border-r border-slate-100 shadow-[2px_0_10px_-3px_rgba(0,0,0,0.03)] bg-white text-slate-700 transition-all duration-300 z-10 ${collapsed ? 'w-20' : 'w-64'
-                }`}
-            >
-                {/* logo */}
-                <div className="flex h-16 items-center px-6 border-b border-slate-100/60">
-                    {!collapsed && (
-                        <Link href="/dashboard" className="flex items-center gap-1.5 overflow-hidden">
-                            <span className="text-xl font-bold tracking-tight text-primary">
-                                Ring <span className="text-slate-800">Planner</span>
-                            </span>
-                        </Link>
-                    )}
-                    {collapsed && (
-                        <Link href="/dashboard" className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                            <span className="text-sm font-bold text-primary">RP</span>
-                        </Link>
-                    )}
+        <aside className={`rp-side ${collapsed ? 'is-collapsed' : ''}`}>
+            <div className="rp-brand">
+                <div className="rp-brand-mark">
+                    <span className="rp-brand-ring" />
                 </div>
+                {!collapsed && (
+                    <div className="rp-brand-text">
+                        <span className="rp-brand-1">Ring</span>
+                        <span className="rp-brand-2">Planner</span>
+                    </div>
+                )}
+            </div>
 
-                {/* navigasyon */}
-                <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-6">
-                    {navGroups.map((group, groupIdx) => (
-                        <div key={group.title || groupIdx} className="space-y-1">
-                            {!collapsed && (
-                                <h3 className="px-4 text-[11px] font-bold tracking-wider text-slate-400 mb-2">
-                                    {group.title}
-                                </h3>
-                            )}
-                            {group.items.map(item => {
-                                const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-                                const Icon = item.icon;
+            <nav className="rp-nav">
+                {navGroups.map((group) => (
+                    <div key={group.label} className="rp-nav-group">
+                        {!collapsed && <div className="rp-nav-label">{group.label}</div>}
+                        {group.items.map((item) => {
+                            const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                            const Icon = item.icon;
+                            return (
+                                <Link
+                                    key={item.href}
+                                    href={item.href}
+                                    className={`rp-nav-item ${isActive ? 'is-active' : ''}`}
+                                    title={collapsed ? item.name : undefined}
+                                >
+                                    <Icon />
+                                    {!collapsed && <span className="rp-nav-name">{item.name}</span>}
+                                </Link>
+                            );
+                        })}
+                    </div>
+                ))}
+            </nav>
 
-                                const linkContent = (
-                                    <Link
-                                        key={item.href}
-                                        href={item.href}
-                                        className={`flex items-center gap-3.5 px-3 py-2.5 rounded-xl text-[14px] transition-all relative ${isActive
-                                            ? 'bg-primary/10 text-primary font-semibold'
-                                            : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800 font-medium'
-                                            } ${collapsed ? 'justify-center' : ''}`}
-                                    >
-                                        {isActive && !collapsed && (
-                                            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-md" />
-                                        )}
-                                        <Icon className={`shrink-0 ${isActive ? 'text-primary' : 'text-slate-400'} ${collapsed ? 'w-6 h-6' : 'w-5 h-5'}`} />
-                                        {!collapsed && <span>{item.label}</span>}
-                                    </Link>
-                                );
-
-                                if (collapsed) {
-                                    return (
-                                        <Tooltip key={item.href}>
-                                            <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
-                                            <TooltipContent side="right" className="bg-card text-card-foreground border-border">
-                                                {item.label}
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    );
-                                }
-
-                                return linkContent;
-                            })}
-                        </div>
-                    ))}
-                </nav>
-
-                <Separator />
-
-                {/* sidebar daralt/genişlet butonu */}
+            <div className="rp-side-foot">
                 <button
+                    className="rp-collapse-btn"
                     onClick={() => setCollapsed(!collapsed)}
-                    className="flex items-center justify-center h-10 text-muted-foreground hover:text-foreground transition-colors"
-                    aria-label={collapsed ? 'Menüyü genişlet' : 'Menüyü daralt'}
+                    title={collapsed ? 'Menüyü aç' : 'Menüyü daralt'}
                 >
-                    {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                        <path
+                            d={collapsed ? 'M9 6l6 6-6 6' : 'M15 6l-6 6 6 6'}
+                            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                        />
+                    </svg>
                 </button>
-            </aside>
-        </TooltipProvider>
+            </div>
+        </aside>
     );
 }
+

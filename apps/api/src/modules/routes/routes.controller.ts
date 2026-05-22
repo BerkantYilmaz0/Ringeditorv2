@@ -38,7 +38,15 @@ export class RoutesController {
 
     static async delete(req: Request, res: Response, next: NextFunction) {
         try {
-            const result = await RoutesService.delete(parseId(req.params.id));
+            const force = req.query.force === 'true';
+            const result = await RoutesService.delete(parseId(req.params.id), force);
+            res.json(ResponseFormatter.success(result));
+        } catch (error) { next(error); }
+    }
+
+    static async deleteStats(req: Request, res: Response, next: NextFunction) {
+        try {
+            const result = await RoutesService.deleteStats(parseId(req.params.id));
             res.json(ResponseFormatter.success(result));
         } catch (error) { next(error); }
     }

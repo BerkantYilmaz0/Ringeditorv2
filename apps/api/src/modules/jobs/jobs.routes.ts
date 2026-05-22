@@ -18,6 +18,7 @@ router.post('/', validateRequest(JobCreateSchema), JobsController.create);
 router.post('/check-conflicts', validateRequest(JobConflictCheckSchema), JobsController.checkConflicts);
 router.post('/generate', validateRequest(JobGenerateSchema), JobsController.generateFromTemplate);
 router.post('/bulk-delete', validateRequest(JobBulkDeleteSchema), JobsController.bulkDelete);
+router.put('/bulk-status', JobsController.bulkUpdateStatus);
 router.get('/calendar-stats', JobsController.getCalendarStats);
 router.get('/:id', JobsController.findById);
 router.put('/:id', validateRequest(JobUpdateSchema), JobsController.update);

@@ -98,4 +98,19 @@ export class AuthController {
             next(error);
         }
     }
+
+    static async changePassword(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { currentPassword, newPassword } = req.body;
+            const result = await AuthService.changePassword(req.user!.id, currentPassword, newPassword);
+            res.json(ResponseFormatter.success(result));
+        } catch (error) { next(error); }
+    }
+
+    static async updateProfile(req: Request, res: Response, next: NextFunction) {
+        try {
+            const result = await AuthService.updateProfile(req.user!.id, req.body);
+            res.json(ResponseFormatter.success(result));
+        } catch (error) { next(error); }
+    }
 }

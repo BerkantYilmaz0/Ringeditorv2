@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RouteCreateSchema } from '@ring-planner/shared';
 import { toast } from 'sonner';
-import { getAllRoutes, createRoute, deleteRoute, Route, getOsrmRoute, GeoJSONLineString } from '@/lib/routes';
+import { getAllRoutes, createRoute, deleteRoute, getRouteDeleteStats, Route, getOsrmRoute, GeoJSONLineString } from '@/lib/routes';
 import { getStops, Stop } from '@/lib/stops';
 import { getRingTypes, RingType } from '@/lib/ring-types';
 
@@ -67,6 +67,8 @@ export default function RoutesPage() {
     const [search, setSearch] = useState('');
     const [selectedRouteId, setSelectedRouteId] = useState<number | null>(null);
     const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+    const [deleteStats, setDeleteStats] = useState<{ jobCount: number; templateJobCount: number } | null>(null);
+    const [deleteLoading, setDeleteLoading] = useState(false);
 
     const form = useForm<RouteFormValues>({
         resolver: zodResolver(routeSchema),
@@ -164,17 +166,31 @@ export default function RoutesPage() {
         }
     };
 
+    const handleOpenDelete = async (routeId: number) => {
+        setDeleteConfirmId(routeId);
+        setDeleteStats(null);
+        try {
+            const stats = await getRouteDeleteStats(routeId);
+            setDeleteStats(stats);
+        } catch {
+            setDeleteStats({ jobCount: 0, templateJobCount: 0 });
+        }
+    };
+
     const handleConfirmDelete = async () => {
         if (deleteConfirmId === null) return;
+        setDeleteLoading(true);
         try {
-            await deleteRoute(deleteConfirmId);
+            await deleteRoute(deleteConfirmId, true);
             setRoutes(routes.filter(r => r.id !== deleteConfirmId));
-            if (selectedRouteId === deleteConfirmId) setSelectedRouteId(null);
-            toast.success('Güzergah silindi');
+            if (selectedRouteId === deleteConfirmId) { setSelectedRouteId(null); setSelectedStops([]); setRouteGeometry(null); }
+            toast.success('Güzergah ve bağlı tüm kayıtlar silindi');
         } catch (error: unknown) {
             toast.error((error as Error).message || 'Silme işlemi başarısız');
         } finally {
             setDeleteConfirmId(null);
+            setDeleteStats(null);
+            setDeleteLoading(false);
         }
     };
 
@@ -242,7 +258,7 @@ export default function RoutesPage() {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel className="text-slate-700">Ring Tipi</FormLabel>
-                                                <Select onValueChange={field.onChange} value={field.value ? field.value.toString() : ''}>
+                                                <Select onValueChange={(v) => field.onChange(parseInt(v))} value={field.value ? field.value.toString() : ''}>
                                                     <FormControl>
                                                         <SelectTrigger>
                                                             <SelectValue placeholder="Tip seçin" />
@@ -370,7 +386,7 @@ export default function RoutesPage() {
                                             className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2"
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                setDeleteConfirmId(route.id);
+                                                handleOpenDelete(route.id);
                                             }}
                                         >
                                             <Trash2 className="h-4 w-4" />
@@ -399,21 +415,56 @@ export default function RoutesPage() {
                 />
             </div>
 
-            <AlertDialog open={deleteConfirmId !== null} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+            <AlertDialog open={deleteConfirmId !== null} onOpenChange={(open) => { if (!open) { setDeleteConfirmId(null); setDeleteStats(null); } }}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Güzergahı Sil</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Bu güzergahı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.
+                        <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+                            <Trash2 className="h-5 w-5" />
+                            Güzergahı Kalıcı Olarak Sil
+                        </AlertDialogTitle>
+                        <AlertDialogDescription asChild>
+                            <div className="space-y-3 text-sm text-slate-600">
+                                <p>Bu güzergah ve bağlı <strong className="text-slate-800">tüm kayıtlar</strong> kalıcı olarak silinecektir. Bu işlem <strong className="text-red-600">geri alınamaz.</strong></p>
+
+                                {deleteStats === null ? (
+                                    <div className="flex items-center gap-2 text-slate-400 py-2">
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        <span>Etkilenecek kayıtlar hesaplanıyor…</span>
+                                    </div>
+                                ) : (
+                                    <div className="bg-red-50 border border-red-100 rounded-lg p-3 space-y-2">
+                                        <p className="text-xs font-semibold text-red-700 uppercase tracking-wide">Silinecek Kayıtlar</p>
+                                        <ul className="space-y-1.5">
+                                            <li className="flex items-center justify-between text-sm">
+                                                <span className="text-slate-600">Bu güzergah</span>
+                                                <span className="font-semibold text-slate-800 bg-red-100 px-2 py-0.5 rounded text-xs">1 güzergah</span>
+                                            </li>
+                                            <li className="flex items-center justify-between text-sm">
+                                                <span className="text-slate-600">Bağlı seferler (Jobs)</span>
+                                                <span className={`font-semibold px-2 py-0.5 rounded text-xs ${deleteStats.jobCount > 0 ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-400'}`}>
+                                                    {deleteStats.jobCount} sefer
+                                                </span>
+                                            </li>
+                                            <li className="flex items-center justify-between text-sm">
+                                                <span className="text-slate-600">Şablon sefer planları</span>
+                                                <span className={`font-semibold px-2 py-0.5 rounded text-xs ${deleteStats.templateJobCount > 0 ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-400'}`}>
+                                                    {deleteStats.templateJobCount} şablon seferi
+                                                </span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>İptal</AlertDialogCancel>
+                        <AlertDialogCancel disabled={deleteLoading}>İptal</AlertDialogCancel>
                         <AlertDialogAction
                             className="bg-red-600 hover:bg-red-700 text-white"
                             onClick={handleConfirmDelete}
+                            disabled={deleteLoading || deleteStats === null}
                         >
-                            Sil
+                            {deleteLoading ? <><Loader2 className="h-4 w-4 animate-spin mr-1.5" />Siliniyor…</> : 'Evet, Tümünü Sil'}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
