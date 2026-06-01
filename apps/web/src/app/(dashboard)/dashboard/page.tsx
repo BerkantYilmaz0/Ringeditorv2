@@ -221,7 +221,7 @@ export default function DashboardPage() {
     });
 
     const statCards = [
-        { title: 'Bugünkü Seferler', value: stats?.todayJobCount, icon: Activity, trend: 'Bugün planlanmış' },
+        { title: 'Bugünkü Seferler.', value: stats?.todayJobCount, icon: Activity, trend: 'Bugün planlanmış' },
         { title: 'Toplam Güzergah', value: stats?.totalRoutes, icon: RouteIcon, trend: 'Aktif kullanımda' },
         { title: 'Toplam Araç', value: stats?.totalVehicles, icon: CarFront, trend: 'Filo kapasitesi' },
         { title: 'Aktif Araçlar', value: stats?.activeVehicles, icon: CheckCircle2, trend: 'Şu an görevde' },
