@@ -61,7 +61,7 @@ jobs:
           username: ${{ secrets.VDS_USERNAME }}
           key: ${{ secrets.VDS_SSH_KEY }}
           script: |
-            cd /root/Ringeditorv2
+            cd /var/www/Ringeditorv2
             export IMAGE_TAG=${{ github.sha }}
             docker compose pull
             docker compose up -d
