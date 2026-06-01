@@ -254,7 +254,7 @@ export class AuthService {
         return prisma.user.update({
             where: { id: userId },
             data,
-            select: { id: true, username: true, role: true, isActive: true, notificationSound: true, notificationBrowser: true },
+            select: { id: true, username: true, role: true, isActive: true, notificationSound: true, notificationBrowser: true, twoFactorEnabled: true },
         });
     }
 }

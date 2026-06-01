@@ -5,6 +5,7 @@ import { LoginInput, User } from '@ring-planner/shared';
 import { redis } from '../../config/redis';
 import { ApiError } from '../../utils/api-error';
 import { env } from '../../config/env';
+import { prisma } from '../../config/database';
 
 const COOKIE_OPTIONS = {
     httpOnly: true,
@@ -101,7 +102,19 @@ export class AuthController {
 
     static async getMe(req: Request, res: Response, next: NextFunction) {
         try {
-            const user = req.user;
+            const user = await prisma.user.findUnique({
+                where: { id: req.user!.id },
+                select: {
+                    id: true,
+                    username: true,
+                    role: true,
+                    fullName: true,
+                    email: true,
+                    phone: true,
+                    twoFactorEnabled: true,
+                    createdAt: true,
+                }
+            });
             res.json(ResponseFormatter.success({ user }));
         } catch (error) {
             next(error);
