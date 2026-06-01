@@ -62,7 +62,9 @@ jobs:
           key: ${{ secrets.VDS_SSH_KEY }}
           script: |
             cd /var/www/Ringeditorv2
-            export IMAGE_TAG=${{ github.sha }}
+            git pull origin main
+            export IMAGE_TAG=latest
             docker compose pull
-            docker compose up -d
+            docker compose up -d --force-recreate
+            docker exec api npx prisma db push --schema=apps/api/prisma/schema.prisma || true
             docker image prune -af --filter "until=24h"
