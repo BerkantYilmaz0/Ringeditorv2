@@ -60,16 +60,30 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy to VDS via SSH
+      - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.VDS_HOST }}
-          username: ${{ secrets.VDS_USERNAME }}
-          key: ${{ secrets.VDS_SSH_KEY }}
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
           script: |
+            # 1. VPS üzerinde GHCR login yap (Özel paketleri çekebilmek için)
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+            
+            # 2. Proje klasörüne git
             cd /var/www/Ringeditorv2
+            
+            # 3. İlgili imaj sürümünü set et ve çek
             export IMAGE_TAG=${{ needs.build-and-push.outputs.version }}
             docker compose pull
+            
+            # 4. Servisleri yeniden başlat
             docker compose up -d --force-recreate
+            sleep 10
+            
+            # 5. Doğru sürümle veritabanını güncelle
+            docker exec api npx prisma@6.3.0 db push --accept-data-loss
+            
+            # 6. Eski imajları temizle
             docker image prune -af --filter "until=24h"
             echo "✅ Deployed version ${{ needs.build-and-push.outputs.version }}"
