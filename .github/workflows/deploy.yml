@@ -2,13 +2,13 @@ name: CI/CD Deploy
 
 on:
   push:
-    branches: [ "main" ]
+    tags:
+      - 'v*.*'   # v1.0, v1.1, v2.0 gibi tag'lerde tetiklenir
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME_API: berkantyilmaz0/ringeditorv2-api
   IMAGE_NAME_WEB: berkantyilmaz0/ringeditorv2-web
-  IMAGE_TAG: ${{ github.sha }} # Full SHA for uniqueness
 
 jobs:
   build-and-push:
@@ -16,10 +16,16 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
       - name: Log in to the Container registry
         uses: docker/login-action@v3
@@ -36,7 +42,7 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_API }}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_API }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_API }}:${{ steps.get_version.outputs.version }}
 
       - name: Build and push Web image
         uses: docker/build-push-action@v5
@@ -46,7 +52,7 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_WEB }}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_WEB }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_WEB }}:${{ steps.get_version.outputs.version }}
           build-args: |
             NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
 
@@ -62,9 +68,8 @@ jobs:
           key: ${{ secrets.VDS_SSH_KEY }}
           script: |
             cd /var/www/Ringeditorv2
-            git pull origin main
-            export IMAGE_TAG=latest
+            export IMAGE_TAG=${{ needs.build-and-push.outputs.version }}
             docker compose pull
             docker compose up -d --force-recreate
-            docker exec api npx prisma db push --schema=apps/api/prisma/schema.prisma || true
             docker image prune -af --filter "until=24h"
+            echo "✅ Deployed version ${{ needs.build-and-push.outputs.version }}"
