@@ -225,61 +225,123 @@ export default function TemplateSeferEditor({ open, onOpenChange, template, onUp
         }
     };
 
+    // ─── Akordeon Durumları ──────────────────────────────────────────────────
+    const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+
+    const toggleSection = (key: string) => {
+        setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
+    };
+
+    const addSlotForRing = (ringId: number) => {
+        // Bu ring tipine ait rotaları bul
+        const ringRoutes = routes.filter(r => r.ringTypeId === ringId);
+        const routeId = ringRoutes[0]?.id.toString() || '';
+
+        const lastTime = slots[slots.length - 1]?.time;
+        let nextTime = '08:00';
+        if (lastTime) {
+            const [h, m] = lastTime.split(':').map(Number);
+            const d = new Date();
+            d.setHours(h, m + 30, 0, 0);
+            nextTime = format(d, 'HH:mm');
+        }
+
+        setSlots(prev => [...prev, { time: nextTime, routeId, vehicleId: '', isNew: true }]);
+
+        // Eklendiğinde akordeonu otomatik aç
+        setOpenSections(prev => ({ ...prev, [ringId.toString()]: true }));
+    };
+
     const getVehicleLabel = (v: Vehicle) =>
         v.driver?.name ? `${v.plate} · ${v.driver.name}` : v.plate;
 
-    const routesByRing = ringTypes.map(rt => ({
-        ring: rt,
-        routes: routes.filter(r => r.ringTypeId === rt.id),
-    })).filter(g => g.routes.length > 0);
+    // ─── Gruplama Mantığı ──────────────────────────────────────────────────────
+
+    // 1. Tanımlanmamış/Rotası Seçilmemiş Slotlar (Yeni eklenenler)
+    const undefinedSlots = slots
+        .map((s, index) => ({ slot: s, index }))
+        .filter(item => !item.slot.routeId);
+
+    // 2. Ring Tiplerine Göre Gruplanmış Slotlar
+    const groupedSlots = ringTypes.map(rt => {
+        const items = slots
+            .map((s, index) => ({ slot: s, index }))
+            .filter(item => {
+                const rId = item.slot.routeId;
+                if (!rId) return false;
+                return getRingTypeIdForRoute(rId) === rt.id;
+            });
+
+        return {
+            ring: rt,
+            items
+        };
+    });
+
+    // Varsayılan olarak içi dolu olan akordeonları açık tut
+    useEffect(() => {
+        if (slots.length > 0 && Object.keys(openSections).length === 0) {
+            const initial: Record<string, boolean> = { undefined: true };
+            ringTypes.forEach(rt => {
+                const hasItems = slots.some(s => {
+                    const rId = s.routeId;
+                    return rId && getRingTypeIdForRoute(rId) === rt.id;
+                });
+                if (hasItems) {
+                    initial[rt.id.toString()] = true;
+                }
+            });
+            setOpenSections(initial);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [slots.length, ringTypes.length]);
 
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
-                {/* ↓↓ BOYUT BURADAN AYARLANIR ↓↓ */}
-                <DialogContent className="sm:max-w-[900px] w-[88vw] max-h-[90vh] overflow-hidden flex flex-col p-0">
-                    <DialogHeader className="px-6 pt-6 pb-0 flex-shrink-0">
+                <DialogContent className="sm:max-w-[950px] w-[90vw] max-h-[92vh] overflow-hidden flex flex-col p-0 border border-slate-100 shadow-xl rounded-xl">
+                    <DialogHeader className="px-6 pt-6 pb-2 flex-shrink-0 bg-slate-50/50 border-b border-slate-100">
                         <DialogTitle className="text-lg font-bold text-slate-800">Şablonu Düzenle</DialogTitle>
                         <DialogDescription className="text-sm text-slate-400">
                             Tekrar eden sefer planını şablon olarak kaydet.
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+                    <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5 bg-slate-50/30">
                         {/* Name + Description — 2 kolon */}
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1.5">
-                                <Label className="text-xs font-medium text-slate-600">Şablon adı</Label>
+                                <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Şablon adı</Label>
                                 <Input
                                     value={name}
                                     onChange={e => setName(e.target.value)}
                                     placeholder="örn. Hafta içi sabah"
-                                    className="h-9 text-sm"
+                                    className="h-10 text-sm border-slate-200 focus:border-[#0d9488] focus:ring-[#0d9488] rounded-lg transition-all"
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <Label className="text-xs font-medium text-slate-600">Açıklama</Label>
+                                <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Açıklama</Label>
                                 <Input
                                     value={description}
                                     onChange={e => setDescription(e.target.value)}
                                     placeholder="Pzt-Cum sabah seferleri"
-                                    className="h-9 text-sm"
+                                    className="h-10 text-sm border-slate-200 focus:border-[#0d9488] focus:ring-[#0d9488] rounded-lg transition-all"
                                 />
                             </div>
                         </div>
 
                         {/* Active Days */}
                         <div className="space-y-2">
-                            <Label className="text-xs font-medium text-slate-600">Aktif günler</Label>
+                            <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Aktif günler</Label>
                             <div className="flex gap-1.5 flex-wrap">
                                 {DAYS.map(d => (
                                     <button
                                         key={d.key}
                                         type="button"
                                         onClick={() => toggleDay(d.key)}
-                                        className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${activeDays.includes(d.key)
-                                            ? 'bg-[#0d9488] text-white'
-                                            : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-sm ${activeDays.includes(d.key)
+                                            ? 'bg-[#0d9488] text-white hover:bg-[#0f766e]'
+                                            : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50'
                                             }`}
                                     >
                                         {d.label}
@@ -288,124 +350,256 @@ export default function TemplateSeferEditor({ open, onOpenChange, template, onUp
                             </div>
                         </div>
 
-                        {/* Slot List */}
-                        <div className="space-y-2">
+                        {/* Slot List Container */}
+                        <div className="space-y-3">
                             <div className="flex items-center justify-between">
-                                <Label className="text-xs font-medium text-slate-600">
+                                <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
                                     Sefer slotları ({slots.length})
                                 </Label>
                                 <button
                                     type="button"
                                     onClick={addSlot}
-                                    className="text-xs text-[#0d9488] hover:text-[#0f766e] font-medium flex items-center gap-1"
+                                    className="text-xs text-[#0d9488] hover:text-[#0f766e] font-semibold flex items-center gap-1 bg-[#0d9488]/10 hover:bg-[#0d9488]/20 px-3 py-1.5 rounded-lg transition-all"
                                 >
                                     <Plus className="h-3.5 w-3.5" />
-                                    Slot ekle
+                                    Boş Slot Ekle
                                 </button>
                             </div>
 
-                            <div className="border border-slate-200 rounded-lg overflow-hidden">
-                                {loading ? (
-                                    <div className="flex items-center justify-center py-8">
-                                        <Loader2 className="h-5 w-5 animate-spin text-[#0d9488]" />
-                                    </div>
-                                ) : slots.length === 0 ? (
-                                    <div className="text-center py-8 text-slate-400 text-sm">
-                                        Henüz slot eklenmemiş.{' '}
-                                        <button onClick={addSlot} className="text-[#0d9488] hover:underline font-medium">
-                                            + Slot ekle
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div className="divide-y divide-slate-100">
-                                        {slots.map((slot, i) => (
-                                            <div key={i} className="flex items-center gap-2 px-3 py-2.5 hover:bg-slate-50 group">
-                                                <span className="text-xs text-slate-400 w-5 text-right flex-shrink-0">{i + 1}.</span>
-
-                                                {/* Time */}
-                                                <input
-                                                    type="time"
-                                                    value={slot.time}
-                                                    onChange={e => updateSlot(i, 'time', e.target.value)}
-                                                    className="w-[98px] h-8 border border-slate-200 rounded-md px-2 text-sm font-mono text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#0d9488] bg-white flex-shrink-0"
-                                                />
-
-                                                {/* Route — grouped by ring */}
-                                                <select
-                                                    value={slot.routeId}
-                                                    onChange={e => updateSlot(i, 'routeId', e.target.value)}
-                                                    className="flex-1 h-8 border border-slate-200 rounded-md px-2 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#0d9488] bg-white min-w-0"
-                                                >
-                                                    <option value="">— Rota seçin —</option>
-                                                    {routesByRing.map(group => (
-                                                        <optgroup key={group.ring.id} label={group.ring.name}>
-                                                            {group.routes.map(r => (
-                                                                <option key={r.id} value={r.id.toString()}>{r.name}</option>
-                                                            ))}
-                                                        </optgroup>
-                                                    ))}
-                                                </select>
-
-                                                {/* Vehicle */}
-                                                <select
-                                                    value={slot.vehicleId}
-                                                    onChange={e => updateSlot(i, 'vehicleId', e.target.value)}
-                                                    className="w-[140px] h-8 border border-slate-200 rounded-md px-2 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#0d9488] bg-white flex-shrink-0"
-                                                >
-                                                    <option value="">Otomatik</option>
-                                                    {vehicles.map(v => (
-                                                        <option key={v.id} value={v.id}>{getVehicleLabel(v)}</option>
-                                                    ))}
-                                                </select>
-
-                                                {/* Bulk — only for saved slots */}
-                                                {slot.originalJob ? (
-                                                    <button
-                                                        type="button"
-                                                        title="Birden fazla sefer ekle"
-                                                        onClick={() => { setBulkJob(slot.originalJob!); setBulkOpen(true); }}
-                                                        className="p-1.5 rounded-md text-slate-300 hover:text-purple-600 hover:bg-purple-50 transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100"
-                                                    >
-                                                        <CalendarPlus className="h-4 w-4" />
-                                                    </button>
-                                                ) : (
-                                                    <div className="w-7 flex-shrink-0" />
-                                                )}
-
-                                                {/* Remove */}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeSlot(i)}
-                                                    className="p-1.5 rounded-md text-slate-300 hover:text-red-400 transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100"
-                                                >
-                                                    <X className="h-4 w-4" />
-                                                </button>
+                            {loading ? (
+                                <div className="flex items-center justify-center py-12 bg-white border border-slate-100 rounded-xl shadow-sm">
+                                    <Loader2 className="h-6 w-6 animate-spin text-[#0d9488]" />
+                                </div>
+                            ) : slots.length === 0 ? (
+                                <div className="text-center py-12 bg-white border border-slate-150 rounded-xl shadow-sm border-dashed">
+                                    <div className="text-slate-400 text-sm mb-3">Henüz slot eklenmemiş.</div>
+                                    <Button onClick={addSlot} className="bg-[#0d9488] hover:bg-[#0f766e] text-white text-xs font-semibold rounded-lg">
+                                        + İlk Slotu Ekle
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {/* ────────── YENİ / TANIMLANMAMIŞ SLOTLAR ────────── */}
+                                    {undefinedSlots.length > 0 && (
+                                        <div className="bg-white border border-yellow-100 rounded-xl overflow-hidden shadow-sm">
+                                            <div
+                                                onClick={() => toggleSection('undefined')}
+                                                className="flex items-center justify-between px-4 py-3 bg-yellow-50/50 border-b border-yellow-50 cursor-pointer select-none"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse" />
+                                                    <span className="text-xs font-bold text-yellow-800 uppercase tracking-wider">Rotalandırılmamış Seferler</span>
+                                                    <span className="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 text-[10px] font-bold">
+                                                        {undefinedSlots.length} Sefer
+                                                    </span>
+                                                </div>
+                                                <span className="text-xs text-yellow-700 font-bold">{openSections['undefined'] ? 'Gizle' : 'Göster'}</span>
                                             </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
+
+                                            {openSections['undefined'] && (
+                                                <div className="divide-y divide-slate-100 p-2 space-y-1">
+                                                    {undefinedSlots.map(({ slot, index }) => (
+                                                        <div key={index} className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50/50 rounded-lg group">
+                                                            <span className="text-xs font-bold text-slate-300 w-6 text-right">{index + 1}.</span>
+                                                            <input
+                                                                type="time"
+                                                                value={slot.time}
+                                                                onChange={e => updateSlot(index, 'time', e.target.value)}
+                                                                className="w-[98px] h-9 border border-slate-200 rounded-lg px-2 text-sm font-mono text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#0d9488] bg-white flex-shrink-0"
+                                                            />
+                                                            <select
+                                                                value={slot.routeId}
+                                                                onChange={e => updateSlot(index, 'routeId', e.target.value)}
+                                                                className="flex-1 h-9 border border-slate-200 rounded-lg px-3 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#0d9488] bg-white min-w-0 font-medium"
+                                                            >
+                                                                <option value="">— Rota seçin (Gruba aktarılacak) —</option>
+                                                                {ringTypes.map(rt => {
+                                                                    const ringRoutes = routes.filter(r => r.ringTypeId === rt.id);
+                                                                    if (ringRoutes.length === 0) return null;
+                                                                    return (
+                                                                        <optgroup key={rt.id} label={rt.name}>
+                                                                            {ringRoutes.map(r => (
+                                                                                <option key={r.id} value={r.id.toString()}>{r.name}</option>
+                                                                            ))}
+                                                                        </optgroup>
+                                                                    );
+                                                                })}
+                                                            </select>
+                                                            <select
+                                                                value={slot.vehicleId}
+                                                                onChange={e => updateSlot(index, 'vehicleId', e.target.value)}
+                                                                className="w-[150px] h-9 border border-slate-200 rounded-lg px-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#0d9488] bg-white flex-shrink-0 font-medium"
+                                                            >
+                                                                <option value="">Otomatik Araç</option>
+                                                                {vehicles.map(v => (
+                                                                    <option key={v.id} value={v.id}>{getVehicleLabel(v)}</option>
+                                                                ))}
+                                                            </select>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => removeSlot(index)}
+                                                                className="p-2 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all flex-shrink-0"
+                                                            >
+                                                                <X className="h-4 w-4" />
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* ────────── RİNG TİPLERİNE GÖRE GRUPLANMIŞ AKORDEONLAR ────────── */}
+                                    {groupedSlots.map(group => {
+                                        const ringIdStr = group.ring.id.toString();
+                                        const ringColor = group.ring.color || '#0d9488';
+
+                                        return (
+                                            <div
+                                                key={group.ring.id}
+                                                className="bg-white border border-slate-150 rounded-xl overflow-hidden shadow-sm transition-all"
+                                                style={{ borderLeft: `4px solid ${ringColor}` }}
+                                            >
+                                                {/* Akordeon Başlığı */}
+                                                <div
+                                                    className="flex items-center justify-between px-4 py-3 cursor-pointer select-none hover:bg-slate-50/50 border-b border-slate-100"
+                                                    onClick={() => toggleSection(ringIdStr)}
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <span
+                                                            className="w-3.5 h-3.5 rounded-full inline-block shadow-inner"
+                                                            style={{ background: ringColor }}
+                                                        />
+                                                        <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                                                            {group.ring.name}
+                                                        </span>
+                                                        <span
+                                                            className="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                                                            style={{ background: `${ringColor}15`, color: ringColor }}
+                                                        >
+                                                            {group.items.length} Sefer
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => addSlotForRing(group.ring.id)}
+                                                            className="text-[10px] font-bold px-2.5 py-1 rounded-md border border-slate-200 hover:border-slate-300 text-slate-600 bg-white hover:bg-slate-50 transition-all flex items-center gap-1"
+                                                        >
+                                                            <Plus className="h-3 w-3" />
+                                                            Sefer Ekle
+                                                        </button>
+                                                        <button
+                                                            onClick={() => toggleSection(ringIdStr)}
+                                                            className="text-xs font-bold text-slate-400 hover:text-slate-600 px-1"
+                                                        >
+                                                            {openSections[ringIdStr] ? 'Gizle' : 'Göster'}
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Akordeon Gövdesi */}
+                                                {openSections[ringIdStr] && (
+                                                    <div className="divide-y divide-slate-100 p-2 space-y-1">
+                                                        {group.items.length === 0 ? (
+                                                            <div className="text-center py-6 text-slate-400 text-xs font-medium">
+                                                                Bu ring tipine ait henüz planlanmış sefer yok.
+                                                            </div>
+                                                        ) : (
+                                                            group.items.map(({ slot, index }) => {
+                                                                // Sadece bu Ring Tipine ait rotaları göster
+                                                                const filteredRoutes = routes.filter(r => r.ringTypeId === group.ring.id);
+
+                                                                return (
+                                                                    <div key={index} className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50/50 rounded-lg group">
+                                                                        <span className="text-xs font-bold text-slate-300 w-6 text-right">{index + 1}.</span>
+
+                                                                        {/* Time */}
+                                                                        <input
+                                                                            type="time"
+                                                                            value={slot.time}
+                                                                            onChange={e => updateSlot(index, 'time', e.target.value)}
+                                                                            className="w-[98px] h-9 border border-slate-200 rounded-lg px-2 text-sm font-mono text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#0d9488] bg-white flex-shrink-0"
+                                                                        />
+
+                                                                        {/* Route — Filtered to current ring type */}
+                                                                        <select
+                                                                            value={slot.routeId}
+                                                                            onChange={e => updateSlot(index, 'routeId', e.target.value)}
+                                                                            className="flex-1 h-9 border border-slate-200 rounded-lg px-3 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#0d9488] bg-white min-w-0 font-medium"
+                                                                        >
+                                                                            <option value="">— Rota seçin —</option>
+                                                                            {filteredRoutes.map(r => (
+                                                                                <option key={r.id} value={r.id.toString()}>{r.name}</option>
+                                                                            ))}
+                                                                        </select>
+
+                                                                        {/* Vehicle */}
+                                                                        <select
+                                                                            value={slot.vehicleId}
+                                                                            onChange={e => updateSlot(index, 'vehicleId', e.target.value)}
+                                                                            className="w-[150px] h-9 border border-slate-200 rounded-lg px-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#0d9488] bg-white flex-shrink-0 font-medium"
+                                                                        >
+                                                                            <option value="">Otomatik Araç</option>
+                                                                            {vehicles.map(v => (
+                                                                                <option key={v.id} value={v.id}>{getVehicleLabel(v)}</option>
+                                                                            ))}
+                                                                        </select>
+
+                                                                        {/* Bulk Action */}
+                                                                        {slot.originalJob ? (
+                                                                            <button
+                                                                                type="button"
+                                                                                title="Birden fazla sefer ekle"
+                                                                                onClick={() => { setBulkJob(slot.originalJob!); setBulkOpen(true); }}
+                                                                                className="p-2 rounded-lg text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100"
+                                                                            >
+                                                                                <CalendarPlus className="h-4 w-4" />
+                                                                            </button>
+                                                                        ) : (
+                                                                            <div className="w-8 flex-shrink-0" />
+                                                                        )}
+
+                                                                        {/* Remove */}
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => removeSlot(index)}
+                                                                            className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all flex-shrink-0 opacity-0 group-hover:opacity-100"
+                                                                        >
+                                                                            <X className="h-4 w-4" />
+                                                                        </button>
+                                                                    </div>
+                                                                );
+                                                            })
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
                     </div>
 
                     {/* Footer */}
-                    <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 flex-shrink-0 bg-white">
+                    <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 flex-shrink-0 bg-slate-50/50">
                         <Button
                             variant="outline"
                             onClick={() => setIsDeleteOpen(true)}
-                            className="text-red-500 border-red-200 hover:bg-red-50 hover:border-red-300 text-sm h-9"
+                            className="text-red-500 border-red-200 hover:bg-red-50 hover:border-red-300 text-sm h-10 shadow-sm"
                         >
-                            <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                            <Trash2 className="h-4 w-4 mr-1.5" />
                             Şablonu sil
                         </Button>
                         <div className="flex items-center gap-2">
-                            <Button variant="ghost" onClick={() => onOpenChange(false)} className="h-9 text-sm">
+                            <Button variant="ghost" onClick={() => onOpenChange(false)} className="h-10 text-sm font-semibold text-slate-500">
                                 Vazgeç
                             </Button>
                             <Button
                                 onClick={handleSave}
                                 disabled={isSaving || !name.trim()}
-                                className="bg-[#0d9488] hover:bg-[#0f766e] text-white h-9 text-sm px-6"
+                                className="bg-[#0d9488] hover:bg-[#0f766e] text-white h-10 text-sm font-bold px-6 shadow-sm rounded-lg"
                             >
                                 {isSaving && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />}
                                 Kaydet
@@ -436,7 +630,7 @@ export default function TemplateSeferEditor({ open, onOpenChange, template, onUp
                     <AlertDialogFooter>
                         <AlertDialogCancel>İptal</AlertDialogCancel>
                         <AlertDialogAction
-                            className="bg-red-600 hover:bg-red-700 text-white"
+                            className="bg-red-600 hover:bg-red-700 text-white font-bold"
                             onClick={handleDeleteTemplate}
                         >
                             Sil
