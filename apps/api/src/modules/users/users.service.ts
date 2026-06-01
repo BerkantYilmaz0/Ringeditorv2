@@ -16,8 +16,12 @@ export class UsersService {
                     id: true,
                     username: true,
                     fullName: true,
+                    email: true,
+                    phone: true,
                     role: true,
                     isActive: true,
+                    twoFactorEnabled: true,
+                    lastLoginAt: true,
                     createdAt: true,
                 },
                 orderBy: { createdAt: 'desc' },
@@ -39,6 +43,7 @@ export class UsersService {
                 phone: true,
                 role: true,
                 isActive: true,
+                twoFactorEnabled: true,
                 createdAt: true,
                 updatedAt: true,
             },
@@ -69,13 +74,19 @@ export class UsersService {
                 phone: data.phone || null,
                 role: data.role || 'VIEWER',
                 isActive: data.isActive ?? true,
+                twoFactorEnabled: data.twoFactorEnabled ?? false,
             },
             select: {
                 id: true,
                 username: true,
                 fullName: true,
+                email: true,
+                phone: true,
                 role: true,
                 isActive: true,
+                twoFactorEnabled: true,
+                lastLoginAt: true,
+                createdAt: true,
             },
         });
     }
@@ -90,6 +101,7 @@ export class UsersService {
         if (data.phone !== undefined) updatePayload.phone = data.phone;
         if (data.role !== undefined) updatePayload.role = data.role;
         if (data.isActive !== undefined) updatePayload.isActive = data.isActive;
+        if (data.twoFactorEnabled !== undefined) updatePayload.twoFactorEnabled = data.twoFactorEnabled;
 
         if (data.password) {
             const salt = await bcrypt.genSalt(10);
@@ -103,8 +115,13 @@ export class UsersService {
                 id: true,
                 username: true,
                 fullName: true,
+                email: true,
+                phone: true,
                 role: true,
                 isActive: true,
+                twoFactorEnabled: true,
+                lastLoginAt: true,
+                createdAt: true,
             },
         });
     }

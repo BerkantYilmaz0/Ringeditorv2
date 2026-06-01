@@ -27,4 +27,14 @@ export class ActivityService {
 
         return { logs, total, page, limit };
     }
+
+    static async clearAll() {
+        await prisma.activityLog.deleteMany({});
+        return { success: true };
+    }
+
+    static async delete(id: number) {
+        await prisma.activityLog.delete({ where: { id } });
+        return { success: true };
+    }
 }

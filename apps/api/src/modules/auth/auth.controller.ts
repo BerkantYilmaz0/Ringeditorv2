@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from './auth.service';
 import { ResponseFormatter } from '../../utils/api-response';
-import { LoginInput } from '@ring-planner/shared';
+import { LoginInput, User } from '@ring-planner/shared';
 import { redis } from '../../config/redis';
 import { ApiError } from '../../utils/api-error';
 import { env } from '../../config/env';
@@ -19,7 +19,43 @@ export class AuthController {
     static async login(req: Request, res: Response, next: NextFunction) {
         try {
             const data: LoginInput = req.body;
-            const { accessToken, refreshToken, user } = await AuthService.login(data);
+            const result = await AuthService.login(data);
+
+            if ('twoFactorRequired' in result && result.twoFactorRequired) {
+                res.json(ResponseFormatter.success({
+                    twoFactorRequired: true,
+                    preAuthToken: result.preAuthToken
+                }));
+                return;
+            }
+
+            const { accessToken, refreshToken, user } = result as { accessToken: string; refreshToken: string; user: User };
+
+            res.cookie('access_token', accessToken, {
+                ...COOKIE_OPTIONS,
+                maxAge: 15 * 60 * 1000, // 15 dakika
+            });
+
+            res.cookie('refresh_token', refreshToken, {
+                ...COOKIE_OPTIONS,
+                maxAge: 7 * 24 * 60 * 60 * 1000, // 7 gün
+            });
+
+            res.json(ResponseFormatter.success({ user }));
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async verify2FA(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { preAuthToken, code } = req.body as { preAuthToken: string; code: string };
+
+            if (!preAuthToken || !code) {
+                throw ApiError.badRequest('Geçersiz doğrulama bilgileri');
+            }
+
+            const { accessToken, refreshToken, user } = await AuthService.verify2FA(preAuthToken, code);
 
             res.cookie('access_token', accessToken, {
                 ...COOKIE_OPTIONS,
@@ -110,6 +146,29 @@ export class AuthController {
     static async updateProfile(req: Request, res: Response, next: NextFunction) {
         try {
             const result = await AuthService.updateProfile(req.user!.id, req.body);
+            res.json(ResponseFormatter.success(result));
+        } catch (error) { next(error); }
+    }
+
+    static async setup2FA(req: Request, res: Response, next: NextFunction) {
+        try {
+            const result = await AuthService.setup2FA(req.user!.id);
+            res.json(ResponseFormatter.success(result));
+        } catch (error) { next(error); }
+    }
+
+    static async enable2FA(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { code } = req.body;
+            const result = await AuthService.enable2FA(req.user!.id, code);
+            res.json(ResponseFormatter.success(result));
+        } catch (error) { next(error); }
+    }
+
+    static async disable2FA(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { password } = req.body;
+            const result = await AuthService.disable2FA(req.user!.id, password);
             res.json(ResponseFormatter.success(result));
         } catch (error) { next(error); }
     }

@@ -6,6 +6,7 @@ export type User = {
     phone: string | null;
     role: 'ADMIN' | 'MANAGER' | 'OPERATOR' | 'VIEWER';
     isActive: boolean;
+    twoFactorEnabled: boolean;
     lastLoginAt: string | null;
     createdAt: string;
     updatedAt: string;
@@ -19,6 +20,7 @@ export type UserCreateRequest = {
     phone?: string;
     role?: 'ADMIN' | 'MANAGER' | 'OPERATOR' | 'VIEWER';
     isActive?: boolean;
+    twoFactorEnabled?: boolean;
 };
 
 export type UserUpdateRequest = {
@@ -29,4 +31,5 @@ export type UserUpdateRequest = {
     phone?: string;
     role?: 'ADMIN' | 'MANAGER' | 'OPERATOR' | 'VIEWER';
     isActive?: boolean;
+    twoFactorEnabled?: boolean;
 };

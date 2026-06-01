@@ -11,6 +11,7 @@ export const UserCreateSchema = z.object({
         phone: z.string().optional(),
         role: UserRole.optional(),
         isActive: z.boolean().optional(),
+        twoFactorEnabled: z.boolean().optional(),
     }),
 });
 
@@ -23,6 +24,7 @@ export const UserUpdateSchema = z.object({
         phone: z.string().optional(),
         role: UserRole.optional(),
         isActive: z.boolean().optional(),
+        twoFactorEnabled: z.boolean().optional(),
     }),
 });
 

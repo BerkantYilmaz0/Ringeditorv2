@@ -225,8 +225,8 @@ async function main() {
                 ringTypeId: siyahRing.id,
                 routeId: route1.id,
                 vehicleId: vehicles[0]!.id,
-                dueTime: BigInt(todayBase.getTime() + 8 * 60 * 60 * 1000), // 08:00
-                status: 1,
+                dueTime: new Date(todayBase.getTime() + 8 * 60 * 60 * 1000), // 08:00
+                status: "PENDING",
             },
         }),
         prisma.templateJob.create({
@@ -235,8 +235,8 @@ async function main() {
                 ringTypeId: siyahRing.id,
                 routeId: route1.id,
                 vehicleId: vehicles[1]!.id,
-                dueTime: BigInt(todayBase.getTime() + 12 * 60 * 60 * 1000), // 12:00
-                status: 1,
+                dueTime: new Date(todayBase.getTime() + 12 * 60 * 60 * 1000), // 12:00
+                status: "PENDING",
             },
         }),
         prisma.templateJob.create({
@@ -245,8 +245,8 @@ async function main() {
                 ringTypeId: siyahRing.id,
                 routeId: route1.id,
                 vehicleId: vehicles[2]!.id,
-                dueTime: BigInt(todayBase.getTime() + 17 * 60 * 60 * 1000), // 17:00
-                status: 1,
+                dueTime: new Date(todayBase.getTime() + 17 * 60 * 60 * 1000), // 17:00
+                status: "PENDING",
             },
         }),
     ]);

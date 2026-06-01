@@ -44,6 +44,8 @@ model User {
   phone        String?
   role         UserRole  @default(VIEWER)
   isActive     Boolean   @default(true) @map("is_active")
+  twoFactorEnabled Boolean @default(false) @map("two_factor_enabled")
+  twoFactorSecret  String? @map("two_factor_secret")
   lastLoginAt  DateTime? @map("last_login_at")
   notificationSound   Boolean @default(true)  @map("notification_sound")
   notificationBrowser Boolean @default(true)  @map("notification_browser")

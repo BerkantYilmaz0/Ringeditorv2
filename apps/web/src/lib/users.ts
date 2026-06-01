@@ -12,6 +12,8 @@ export interface User {
     isActive: boolean;
     notificationSound: boolean;
     notificationBrowser: boolean;
+    lastLoginAt?: string | null;
+    twoFactorEnabled?: boolean;
     createdAt: string;
 }
 
@@ -22,6 +24,7 @@ export interface UserCreateInput {
     email?: string;
     phone?: string;
     role: UserRole;
+    twoFactorEnabled?: boolean;
 }
 
 export async function getUsers(params?: { page?: number; limit?: number; search?: string }): Promise<{ data: User[]; total: number }> {

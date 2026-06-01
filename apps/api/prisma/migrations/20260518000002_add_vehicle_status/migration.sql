@@ -1,0 +1,2 @@
+CREATE TYPE "VehicleStatus" AS ENUM ('AVAILABLE', 'MAINTENANCE');
+ALTER TABLE "vehicles" ADD COLUMN "vehicle_status" "VehicleStatus" NOT NULL DEFAULT 'AVAILABLE';

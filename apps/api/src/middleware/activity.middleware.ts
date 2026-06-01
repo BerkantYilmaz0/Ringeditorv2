@@ -24,21 +24,39 @@ function parseEntity(path: string): { entity: string; entityId?: string } {
 }
 
 export const activityLogger = (req: Request, res: Response, next: NextFunction) => {
-    if (!req.user || req.method === 'GET' || req.method === 'OPTIONS') return next();
+    if (req.method === 'GET' || req.method === 'OPTIONS') return next();
 
     const originalJson = res.json.bind(res);
     res.json = (body) => {
-        // Sadece başarılı yanıtlarda log at
-        if (res.statusCode >= 200 && res.statusCode < 300) {
+        // Sadece başarılı ve kimliği doğrulanmış kullanıcı yanıtlarında log at
+        if (res.statusCode >= 200 && res.statusCode < 300 && req.user) {
             const action = `${METHOD_ACTION[req.method] ?? req.method}_${parseEntity(req.path).entity.toUpperCase()}`;
             const { entity, entityId } = parseEntity(req.path);
+            const targetName = body?.data?.fullName ?? 
+                (body?.data?.name ?? 
+                (body?.data?.plateNumber ?? 
+                (body?.data?.username ?? 
+                (body?.fullName ?? 
+                (body?.name ?? 
+                (body?.plateNumber ?? 
+                (body?.username ?? 
+                (req.body?.fullName ?? 
+                (req.body?.name ?? 
+                (req.body?.plateNumber ?? 
+                (req.body?.username ?? undefined)))))))))));
+
             prisma.activityLog.create({
                 data: {
-                    userId: req.user!.id,
+                    userId: req.user.id,
                     action,
                     entity,
-                    entityId: entityId ?? (body?.data?.id?.toString()),
-                    meta: { method: req.method, path: req.path, status: res.statusCode },
+                    entityId: entityId ?? (body?.data?.id?.toString() ?? body?.id?.toString()),
+                    meta: { 
+                        method: req.method, 
+                        path: req.path, 
+                        status: res.statusCode,
+                        targetName: targetName ? String(targetName) : undefined
+                    },
                 },
             }).catch(err => logger.error('ActivityLog write error:', err));
         }
